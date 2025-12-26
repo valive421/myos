@@ -1,0 +1,12 @@
+SYSTEM BEGIN KERNEL
+    OPTION OFFSET=0
+    ORDER
+        CLNAME CODE SEGADDR=0x2000
+            SEGMENT _ENTRY
+            SEGMENT _TEXT
+        CLNAME DATA 
+            SEGMENT _DATA
+        CLNAME BSS
+            SEGMENT _BSS
+    ENDORD
+END
