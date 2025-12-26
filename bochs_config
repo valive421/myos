@@ -7,3 +7,6 @@ mouse: enabled=0
 display_library: x, options="gui_debug"
 magic_break: enabled=1
 plugin_ctrl: speaker=0
+
+# Network configuration for NE2000 support
+ne2k: ioaddr=0x300, irq=9, mac=52:54:00:12:34:56, ethmod=vnet, script=none
