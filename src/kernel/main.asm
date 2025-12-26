@@ -46,4 +46,4 @@ main:
 .halt:
     jmp .halt
 
-msg_hello: db 'Hello, World! from kernel!q', Endl, 0
+msg_hello: db 'Hello, World! from kernel!wedq', Endl, 0

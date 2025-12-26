@@ -2,16 +2,12 @@ bits 16
 
 section _TEXT class=CODE
 
-;
-; int 10h ah=0Eh
-; args: character, page
-;
 global _x86_Video_WriteCharTeletype
 _x86_Video_WriteCharTeletype:
     
     ; make new call frame
-    push bp             ; save old call frame
-    mov bp, sp          ; initialize new call frame
+    push bp            
+    mov bp, sp          
 
     ; save bx
     push bx
