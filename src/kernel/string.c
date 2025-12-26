@@ -29,6 +29,18 @@ int strncmp(const char* s1, const char* s2, int n)
     return *(unsigned char*)s1 - *(unsigned char*)s2;
 }
 
+char* strncpy(char* dest, const char* src, int n)
+{
+    int i;
+    for(i = 0; i < n && src[i] != '\0'; i++) {
+        dest[i] = src[i];
+    }
+    for(; i < n; i++) {
+        dest[i] = '\0';
+    }
+    return dest;
+}
+
 char* strcpy(char* dest, const char* src)
 {
     char* d = dest;
@@ -36,6 +48,19 @@ char* strcpy(char* dest, const char* src)
         *d++ = *src++;
     }
     *d = '\0';
+    return dest;
+}
+
+char* strncat(char* dest, const char* src, int n)
+{
+    char* d = dest;
+    while(*d)
+        d++;
+    int i;
+    for(i = 0; i < n && src[i] != '\0'; i++) {
+        d[i] = src[i];
+    }
+    d[i] = '\0';
     return dest;
 }
 

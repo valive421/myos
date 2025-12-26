@@ -15,8 +15,9 @@ void puts(const char* str)
     }
 }
 
+// Simple print function - just outputs string
+// Note: This is not a full printf implementation
 void printf(const char* fmt, ...)
 {
-    // Simple printf - just output the format string for now
     puts(fmt);
 }

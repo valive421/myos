@@ -87,7 +87,9 @@ void browser_navigate(const char* url)
     // Fetch the page
     if(http_get(url, &response) == 0) {
         browser_display_page(&response);
-        strcpy(current_url, url);
+        // Safely copy URL with bounds checking
+        strncpy(current_url, url, sizeof(current_url) - 1);
+        current_url[sizeof(current_url) - 1] = '\0';
     } else {
         puts("Failed to load page!\r\n");
     }

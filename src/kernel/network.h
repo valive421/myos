@@ -1,6 +1,9 @@
 #pragma once
 #include "stdint.h"
 
+// Note: Using GCC/Watcom __attribute__((packed)) for network structures
+// This is necessary for proper network packet layout in this embedded system
+
 // Ethernet frame
 typedef struct {
     uint8_t dest_mac[6];
