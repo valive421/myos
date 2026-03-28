@@ -5,7 +5,8 @@ A small educational x86 OS project that boots from a FAT12 floppy image, loads a
 The project demonstrates:
 - BIOS-based disk and video services (`int 13h`, `int 10h`)
 - FAT12 file loading in real mode
-- Mixed ASM + C stage2 bootloader with OpenWatcom
+- Mixed ASM + C stage2 bootloader with GCC (`-m16`)
+- Protected mode handoff in kernel
 - Reproducible floppy image build pipeline
 
 ---
@@ -71,8 +72,9 @@ BIOS
 - Loads `KERNEL  BIN` and jumps to it.
 
 ### Kernel (flat binary)
-- 16-bit real-mode starter payload.
-- Initializes segment registers/stack and prints a hello line.
+- Prints a real-mode confirmation message first.
+- Enters 32-bit protected mode using a minimal GDT setup.
+- Prints a protected-mode message using VGA text memory.
 
 ---
 
@@ -97,6 +99,7 @@ BIOS
     │   └── stage2/
     │       ├── disk.c / disk.h
     │       ├── fat12.c / fat12.h
+    │       ├── linker.ld
     │       ├── linker.lnk
     │       ├── main.asm
     │       ├── main.c
@@ -119,18 +122,14 @@ BIOS
 - `qemu-system-i386`
 - `mkfs.fat` (from `dosfstools`)
 - `mcopy` (from `mtools`)
-- OpenWatcom C toolchain (`wcc`, `wlink`)
+- `gcc` (with `-m16` support)
+- `ld` (GNU binutils, i386 linking support)
 
 ### Optional (debugging)
 - `bochs`
 
-> The stage2 makefile currently expects OpenWatcom at:
->
-> `/usr/bin/watcom/binl/wcc`
->
-> `/usr/bin/watcom/binl/wlink`
-
-Adjust paths in `src/bootloader/stage2/makefile` if needed.
+Stage2 is built with GCC/NASM/LD in ELF mode and linked as a raw binary via
+`src/bootloader/stage2/linker.ld`.
 
 ---
 
@@ -179,12 +178,12 @@ Uses:
 - final transfer: `jmp KERNEL_LOAD_SEGMENT:KERNEL_LOAD_OFFSET` (for stage1-loaded payload)
 
 ### Stage2 entry (`src/bootloader/stage2/main.asm`, `main.c`)
-- ASM `entry` passes boot drive and calls `_cstart_`
+- ASM `entry` passes boot drive and calls `cstart_`
 - C `cstart_` sequence:
   1. `DISK_Initialize`
   2. `FAT12_Initialize`
   3. `FAT12_LoadFileByName("KERNEL  BIN", 0x4000, 0x0000, ...)`
-  4. far jump to loaded kernel entry
+  4. `x86_JumpToKernel(0x4000, 0x0000)`
 
 ### FAT12 implementation (`src/bootloader/stage2/fat12.c`)
 - BPB parsing from sector 0
@@ -193,14 +192,16 @@ Uses:
 - root directory scan for 8.3 name
 
 ### BIOS interface (`src/bootloader/stage2/x86.asm`)
-- `_x86_Disk_Read` / `_x86_Disk_Reset` / `_x86_Disk_GetDriveParams`
-- `_x86_Video_WriteCharTeletype`
-- `_x86_div64_32` helper used for division in 16-bit environment
+- `x86_Disk_Read` / `x86_Disk_Reset` / `x86_Disk_GetDriveParams`
+- `x86_Video_WriteCharTeletype`
+- `x86_div64_32` helper used for division in 16-bit environment
+- `x86_JumpToKernel` far jump helper used by stage2 C code
 
 ### Kernel entry (`src/kernel/main.asm`)
 - sets `DS/ES/SS` to `CS`
 - initializes stack
-- prints `Hello from kernel!`
+- prints `Hello from kernel (real mode).`
+- switches to protected mode and prints `Hello from protected mode kernel!`
 
 ### Important code snippets
 
@@ -220,8 +221,7 @@ Decodes cluster chain entries from FAT12 packed format.
 
 **Real-mode far jump to loaded kernel**
 ```c
-kernelEntry = (void (_cdecl far*)(void))MEM_FarPtr(0x4000, 0x0000);
-kernelEntry();
+x86_JumpToKernel(0x4000, 0x0000);
 ```
 Transfers control from stage2 to kernel entry point.
 
@@ -229,9 +229,8 @@ Transfers control from stage2 to kernel entry point.
 
 ## Known Limitations
 
-- 16-bit real mode only.
 - FAT12 root-directory-only loading (no subdirectories).
-- No protected mode / paging / interrupts framework yet.
+- Minimal protected mode support only (no paging/IDT/interrupt framework yet).
 - Kernel is a flat binary payload (no ELF loader).
 - Limited diagnostics and error recovery paths.
 
@@ -240,7 +239,7 @@ Transfers control from stage2 to kernel entry point.
 ## Roadmap Ideas
 
 - Load files from subdirectories.
-- Add A20 enable + protected mode entry.
+- Add A20 enable routine before entering protected mode.
 - Introduce GDT/IDT and basic interrupt handlers.
 - Move kernel to C/ASM mixed architecture.
 - Add memory map collection (E820) and boot info handoff struct.
@@ -278,14 +277,15 @@ Transfers control from stage2 to kernel entry point.
 - **`disk.c`**: LBA->CHS conversion and sector read retry logic.
 - **`fat12.h`**: FAT12 metadata struct and public FAT12 loader APIs.
 - **`fat12.c`**: FAT12 parser + root search + cluster-chain file loader.
-- **`memory.h`**: far pointer and segment-range helper declarations.
+- **`memory.h`**: segment-range helper declarations.
 - **`memory.c`**: real-mode memory helper implementations.
 - **`x86.h`**: BIOS/ASM boundary declarations.
 - **`x86.asm`**: low-level BIOS wrappers and arithmetic helper.
 - **`stdio.h`**: minimal text output API declarations.
 - **`stdio.c`**: screen output + compact `printf` implementation.
 - **`stdint.h`**: local fixed-width integer typedefs.
-- **`linker.lnk`**: OpenWatcom linker directives for stage2 binary layout.
+- **`linker.ld`**: GNU LD script for stage2 raw binary layout.
+- **`linker.lnk`**: legacy OpenWatcom linker file (kept for reference).
 - **`makefile`**: compiles/links stage2 objects and outputs `stage2.bin`.
 
 ### `src/kernel`

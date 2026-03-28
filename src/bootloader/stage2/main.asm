@@ -1,8 +1,8 @@
 bits 16
 
-section _ENTRY class=CODE
+section .text
 
-extern _cstart_
+extern cstart_
 global entry
 
 entry:
@@ -10,14 +10,15 @@ entry:
     ; setup stack
     mov ax, ds
     mov ss, ax
-    mov sp, 0
-    mov bp, sp
+    mov esp, 0x0000FFF0
     sti
 
     ; expect boot drive in dl, send it as argument to cstart function
     xor dh, dh
-    push dx
-    call _cstart_
+    movzx edx, dx
+    push dword edx
+    call dword cstart_
+    add esp, 4
 
     cli
     hlt

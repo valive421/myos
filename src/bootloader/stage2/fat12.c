@@ -171,10 +171,11 @@ static bool FAT12_LoadFileToMemory(DISK* disk,
             if (!MEM_CanAccessSegmentRange(dstOffset, fs->bytesPerSector))
                 return false;
 
-            if (!DISK_ReadSectors(disk,
-                                  (uint32_t)(firstSector + s),
-                                  1,
-                                  MEM_FarPtr(loadSegment, dstOffset)))
+            if (!DISK_ReadSectorsToSegment(disk,
+                                           (uint32_t)(firstSector + s),
+                                           1,
+                                           loadSegment,
+                                           dstOffset))
                 return false;
 
             sectorCount++;

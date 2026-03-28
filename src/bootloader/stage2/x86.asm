@@ -1,210 +1,188 @@
 bits 16
 
-section _TEXT class=CODE
-global _x86_div64_32
-_x86_div64_32:
+section .text
 
-    ; make new call frame
-    push bp             ; save old call frame
-    mov bp, sp          ; initialize new call frame
+global x86_div64_32
+x86_div64_32:
+    ; GCC -m16 cdecl stack layout (32-bit slots):
+    ; [ebp +  8] = dividend low dword
+    ; [ebp + 12] = dividend high dword
+    ; [ebp + 16] = divisor
+    ; [ebp + 20] = quotientOut (near pointer)
+    ; [ebp + 24] = remainderOut (near pointer)
 
+    push ebp
+    mov ebp, esp
     push bx
 
-    ; divide upper 32 bits
-    mov eax, [bp + 8]   ; eax <- upper 32 bits of dividend
-    mov ecx, [bp + 12]  ; ecx <- divisor
+    mov eax, [ebp + 12]
+    mov ecx, [ebp + 16]
     xor edx, edx
-    div ecx             ; eax - quot, edx - remainder
-
-    ; store upper 32 bits of quotient
-    mov bx, [bp + 16]
-    mov [bx + 4], eax
-
-    ; divide lower 32 bits
-    mov eax, [bp + 4]   ; eax <- lower 32 bits of dividend
-                        ; edx <- old remainder
     div ecx
 
-    ; store results
+    mov bx, [ebp + 20]
+    mov [bx + 4], eax
+
+    mov eax, [ebp + 8]
+    div ecx
+
     mov [bx], eax
-    mov bx, [bp + 18]
+    mov bx, [ebp + 24]
     mov [bx], edx
 
     pop bx
+    mov esp, ebp
+    pop ebp
+    retd
 
-    ; restore old call frame
-    mov sp, bp
-    pop bp
-    ret
-global _x86_Video_WriteCharTeletype
-_x86_Video_WriteCharTeletype:
-    
-    ; make new call frame
-    push bp            
-    mov bp, sp          
+global x86_Video_WriteCharTeletype
+x86_Video_WriteCharTeletype:
+    ; [ebp + 8]  = character
+    ; [ebp + 12] = page
 
-    ; save bx
+    push ebp
+    mov ebp, esp
     push bx
 
-    ; [bp + 0] - old call frame
-    ; [bp + 2] - return address (small memory model => 2 bytes)
-    ; [bp + 4] - first argument (character)
-    ; [bp + 6] - second argument (page)
-    ; note: bytes are converted to words (you can't push a single byte on the stack)
     mov ah, 0Eh
-    mov al, [bp + 4]
-    mov bh, [bp + 6]
-
+    mov al, [ebp + 8]
+    mov bh, [ebp + 12]
     int 10h
 
-    ; restore bx
     pop bx
+    mov esp, ebp
+    pop ebp
+    retd
 
-    ; restore old call frame
-    mov sp, bp
-    pop bp
-    ret
+global x86_Disk_Reset
+x86_Disk_Reset:
+    ; [ebp + 8] = drive
 
-    
-;
-; bool _cdecl x86_Disk_Reset(uint8_t drive);
-;
-global _x86_Disk_Reset
-_x86_Disk_Reset:
-
-    ; make new call frame
-    push bp             ; save old call frame
-    mov bp, sp          ; initialize new call frame
+    push ebp
+    mov ebp, esp
 
     mov ah, 0
-    mov dl, [bp + 4]    ; dl - drive
+    mov dl, [ebp + 8]
     stc
     int 13h
 
     mov ax, 1
-    sbb ax, 0           ; 1 on success, 0 on fail   
+    sbb ax, 0
 
-    ; restore old call frame
-    mov sp, bp
-    pop bp
-    ret
+    mov esp, ebp
+    pop ebp
+    retd
 
+global x86_Disk_Read
+x86_Disk_Read:
+    ; [ebp +  8] = drive
+    ; [ebp + 12] = cylinder
+    ; [ebp + 16] = sector
+    ; [ebp + 20] = head
+    ; [ebp + 24] = count
+    ; [ebp + 28] = segment
+    ; [ebp + 32] = offset
 
-;
-; bool _cdecl x86_Disk_Read(uint8_t drive,
-;                           uint16_t cylinder,
-;                           uint16_t sector,
-;                           uint16_t head,
-;                           uint8_t count,
-;                           void far * dataOut);
-;
-global _x86_Disk_Read
-_x86_Disk_Read:
+    push ebp
+    mov ebp, esp
 
-    ; make new call frame
-    push bp             ; save old call frame
-    mov bp, sp          ; initialize new call frame
-
-    ; save modified regs
     push bx
     push es
 
-    ; setup args
-    mov dl, [bp + 4]    ; dl - drive
+    mov dl, [ebp + 8]
 
-    mov ch, [bp + 6]    ; ch - cylinder (lower 8 bits)
-    mov cl, [bp + 7]    ; cl - cylinder to bits 6-7
+    mov ch, [ebp + 12]
+    mov cl, [ebp + 13]
     shl cl, 6
-    
-    mov al, [bp + 8]    ; cl - sector to bits 0-5
+
+    mov al, [ebp + 16]
     and al, 3Fh
     or cl, al
 
-    mov dh, [bp + 10]   ; dh - head
+    mov dh, [ebp + 20]
+    mov al, [ebp + 24]
 
-    mov al, [bp + 12]   ; al - count
-
-    mov bx, [bp + 16]   ; es:bx - far pointer to data out
+    mov bx, [ebp + 28]
     mov es, bx
-    mov bx, [bp + 14]
+    mov bx, [ebp + 32]
 
-    ; call int13h
     mov ah, 02h
     stc
     int 13h
 
-    ; set return value
     mov ax, 1
-    sbb ax, 0           ; 1 on success, 0 on fail   
+    sbb ax, 0
 
-    ; restore regs
     pop es
     pop bx
 
-    ; restore old call frame
-    mov sp, bp
-    pop bp
-    ret
+    mov esp, ebp
+    pop ebp
+    retd
 
+global x86_Disk_GetDriveParams
+x86_Disk_GetDriveParams:
+    ; [ebp +  8] = drive
+    ; [ebp + 12] = driveTypeOut
+    ; [ebp + 16] = cylindersOut
+    ; [ebp + 20] = sectorsOut
+    ; [ebp + 24] = headsOut
 
-;
-; bool _cdecl x86_Disk_GetDriveParams(uint8_t drive,
-;                                     uint8_t* driveTypeOut,
-;                                     uint16_t* cylindersOut,
-;                                     uint16_t* sectorsOut,
-;                                     uint16_t* headsOut);
-;
-global _x86_Disk_GetDriveParams
-_x86_Disk_GetDriveParams:
+    push ebp
+    mov ebp, esp
 
-    ; make new call frame
-    push bp             ; save old call frame
-    mov bp, sp          ; initialize new call frame
-
-    ; save regs
     push es
     push bx
     push si
     push di
 
-    ; call int13h
-    mov dl, [bp + 4]    ; dl - disk drive
+    mov dl, [ebp + 8]
     mov ah, 08h
-    mov di, 0           ; es:di - 0000:0000
+    xor di, di
     mov es, di
     stc
     int 13h
 
-    ; return
     mov ax, 1
     sbb ax, 0
 
-    ; out params
-    mov si, [bp + 6]    ; drive type from bl
+    mov si, [ebp + 12]
     mov [si], bl
 
-    mov bl, ch          ; cylinders - lower bits in ch
-    mov bh, cl          ; cylinders - upper bits in cl (6-7)
+    mov bl, ch
+    mov bh, cl
     shr bh, 6
-    mov si, [bp + 8]
+    mov si, [ebp + 16]
     mov [si], bx
 
-    xor ch, ch          ; sectors - lower 5 bits in cl
+    xor ch, ch
     and cl, 3Fh
-    mov si, [bp + 10]
+    mov si, [ebp + 20]
     mov [si], cx
 
-    mov cl, dh          ; heads - dh
-    mov si, [bp + 12]
+    xor ch, ch
+    mov cl, dh
+    mov si, [ebp + 24]
     mov [si], cx
 
-    ; restore regs
     pop di
     pop si
     pop bx
     pop es
 
-    ; restore old call frame
-    mov sp, bp
-    pop bp
-    ret
+    mov esp, ebp
+    pop ebp
+    retd
+
+global x86_JumpToKernel
+x86_JumpToKernel:
+    ; [ebp +  8] = segment (uint16_t promoted to int)
+    ; [ebp + 12] = offset  (uint16_t promoted to int)
+
+    push ebp
+    mov ebp, esp
+
+    cli
+    push word [ebp + 8]
+    push word [ebp + 12]
+    retf

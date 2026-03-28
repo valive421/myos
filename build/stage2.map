@@ -1,122 +1,103 @@
-Open Watcom Linker Version 2.0 beta Dec 25 2025 02:42:55 (32-bit)
-Copyright (c) 2002-2025 The Open Watcom Contributors. All Rights Reserved.
-Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
-Created on:       26/03/28 07:19:59
-Executable Image: /home/kali/os/build/stage2.bin
-creating a RAW Binary Image executable
 
+There are no discarded input sections
 
-                        +------------+
-                        |   Groups   |
-                        +------------+
+Memory Configuration
 
-Group                           Address              Size
-=====                           =======              ====
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
 
-DGROUP                          00000fc0             00006282
+Linker script and memory map
 
+                0x00000000                        . = 0x0
 
+.text           0x00000000      0xd0e
+ *(.text*)
+ .text          0x00000000       0x20 /home/kali/os/build/stage2/asm/main.obj
+                0x00000000                entry
+ .text          0x00000020      0x10f /home/kali/os/build/stage2/asm/x86.obj
+                0x00000020                x86_div64_32
+                0x00000058                x86_Video_WriteCharTeletype
+                0x00000072                x86_Disk_Reset
+                0x0000008d                x86_Disk_Read
+                0x000000d1                x86_Disk_GetDriveParams
+                0x00000120                x86_JumpToKernel
+ *fill*         0x0000012f        0x1 
+ .text          0x00000130      0x28a /home/kali/os/build/stage2/c/disk.obj
+                0x00000130                DISK_Initialize
+                0x000001a8                DISK_LBA2CHS
+                0x00000244                DISK_ReadSectorsToSegment
+                0x00000384                DISK_ReadSectors
+ *fill*         0x000003ba        0x2 
+ .text          0x000003bc      0x39c /home/kali/os/build/stage2/c/fat12.obj
+                0x000003bc                FAT12_Initialize
+                0x00000534                FAT12_LoadFileByName
+ .text          0x00000758       0xee /home/kali/os/build/stage2/c/main.obj
+                0x00000758                cstart_
+ *fill*         0x00000846        0x2 
+ .text          0x00000848       0x1c /home/kali/os/build/stage2/c/memory.obj
+                0x00000848                MEM_CanAccessSegmentRange
+ .text          0x00000864      0x4aa /home/kali/os/build/stage2/c/stdio.obj
+                0x00000864                putc
+                0x00000880                puts
+                0x000008c0                printf_number
+                0x00000b00                printf
 
-                        +--------------+
-                        |   Segments   |
-                        +--------------+
+.rodata         0x00000d10      0x105
+ *(.rodata*)
+ .rodata.str1.1
+                0x00000d10       0x6f /home/kali/os/build/stage2/c/main.obj
+ *fill*         0x00000d7f        0x1 
+ .rodata        0x00000d80       0x95 /home/kali/os/build/stage2/c/stdio.obj
+                0x00000e04                g_HexChars
 
-Segment                Class          Group          Address         Size
-=======                =====          =====          =======         ====
+.eh_frame       0x00000e18      0x49c
+ .eh_frame      0x00000e18      0x160 /home/kali/os/build/stage2/c/disk.obj
+ .eh_frame      0x00000f78      0x110 /home/kali/os/build/stage2/c/fat12.obj
+ .eh_frame      0x00001088       0xa4 /home/kali/os/build/stage2/c/main.obj
+ .eh_frame      0x0000112c       0x2c /home/kali/os/build/stage2/c/memory.obj
+ .eh_frame      0x00001158      0x15c /home/kali/os/build/stage2/c/stdio.obj
 
-_ENTRY                 CODE           AUTO           00000000        00000013
-_TEXT                  CODE           AUTO           00000013        00000fad
-CONST                  DATA           DGROUP         00000fc0        0000006f
-CONST2                 DATA           DGROUP         00001030        00000011
-_DATA                  DATA           DGROUP         00001042        00000000
-_BSS                   BSS            DGROUP         00001042        00006200
+.data           0x000012c0        0x0
+ *(.data*)
+ .data          0x000012c0        0x0 /home/kali/os/build/stage2/c/disk.obj
+ .data          0x000012c0        0x0 /home/kali/os/build/stage2/c/fat12.obj
+ .data          0x000012c0        0x0 /home/kali/os/build/stage2/c/main.obj
+ .data          0x000012c0        0x0 /home/kali/os/build/stage2/c/memory.obj
+ .data          0x000012c0        0x0 /home/kali/os/build/stage2/c/stdio.obj
 
+.bss            0x000012c0     0x6200
+ *(.bss*)
+ .bss           0x000012c0        0x0 /home/kali/os/build/stage2/c/disk.obj
+ .bss           0x000012c0     0x6200 /home/kali/os/build/stage2/c/fat12.obj
+ .bss           0x000074c0        0x0 /home/kali/os/build/stage2/c/main.obj
+ .bss           0x000074c0        0x0 /home/kali/os/build/stage2/c/memory.obj
+ .bss           0x000074c0        0x0 /home/kali/os/build/stage2/c/stdio.obj
+ *(COMMON)
+LOAD /home/kali/os/build/stage2/asm/main.obj
+LOAD /home/kali/os/build/stage2/asm/x86.obj
+LOAD /home/kali/os/build/stage2/c/disk.obj
+LOAD /home/kali/os/build/stage2/c/fat12.obj
+LOAD /home/kali/os/build/stage2/c/main.obj
+LOAD /home/kali/os/build/stage2/c/memory.obj
+LOAD /home/kali/os/build/stage2/c/stdio.obj
+OUTPUT(/home/kali/os/build/stage2.bin binary)
 
-                        +----------------+
-                        |   Memory Map   |
-                        +----------------+
+.comment        0x00000000       0x9b
+ .comment       0x00000000       0x1f /home/kali/os/build/stage2/c/disk.obj
+ .comment       0x0000001f       0x1f /home/kali/os/build/stage2/c/fat12.obj
+ .comment       0x0000003e       0x1f /home/kali/os/build/stage2/c/main.obj
+ .comment       0x0000005d       0x1f /home/kali/os/build/stage2/c/memory.obj
+ .comment       0x0000007c       0x1f /home/kali/os/build/stage2/c/stdio.obj
 
-* = unreferenced symbol
-+ = symbol only referenced locally
-
-Address        Symbol
-=======        ======
-
-Module: /home/kali/os/build/stage2/asm/main.obj(main.asm)
-00000000       entry
-Module: /home/kali/os/build/stage2/asm/x86.obj(x86.asm)
-00000013       _x86_div64_32
-00000041       _x86_Video_WriteCharTeletype
-00000054       _x86_Disk_Reset
-00000069       _x86_Disk_Read
-000000a0       _x86_Disk_GetDriveParams
-Module: /home/kali/os/build/stage2/c/disk.obj(/home/kali/os/src/bootloader/stage2/disk.c)
-000000e4       DISK_Initialize_
-00000158+      DISK_LBA2CHS_
-000001e0       DISK_ReadSectors_
-Module: /home/kali/os/build/stage2/c/fat12.obj(/home/kali/os/src/bootloader/stage2/fat12.c)
-0000080f       FAT12_Initialize_
-00000874       FAT12_LoadFileByName_
-Module: /home/kali/os/build/stage2/c/main.obj(/home/kali/os/src/bootloader/stage2/main.c)
-000008ff       _cstart_
-Module: /home/kali/os/build/stage2/c/memory.obj(/home/kali/os/src/bootloader/stage2/memory.c)
-00000990       MEM_FarPtr_
-000009d1       MEM_CanAccessSegmentRange_
-Module: /home/kali/os/build/stage2/c/stdio.obj(/home/kali/os/src/bootloader/stage2/stdio.c)
-00000a2e+      putc_
-00000a55       puts_
-00000a8c+      puts_f_
-00000ac9+      _printf
-00000d4c+      printf_number_
-00001030+      _g_HexChars
-
-
-                        +---------------------+
-                        |   Module Segments   |
-                        +---------------------+
-
-! = 32-bit segment
-c = initialized communal data
-
-Module          Segment               Class           Address         Size
-======          =======               =====           =======         ====
-
-main.asm        _ENTRY                CODE           00000000         00000013
-x86.asm         _TEXT                 CODE           00000013         000000d1
-/home/kali/os/src/bootloader/stage2/disk.c
-                _TEXT                 CODE           000000e4         00000199
-                CONST                 DATA           00000fc0         00000000
-                CONST2                DATA           00001030         00000000
-                _DATA                 DATA           00001042         00000000
-/home/kali/os/src/bootloader/stage2/fat12.c
-                _TEXT                 CODE           0000027d         00000682
-                CONST                 DATA           00000fc0         00000000
-                CONST2                DATA           00001030         00000000
-                _DATA                 DATA           00001042         00000000
-                _BSS                  BSS            00001042         00006200
-/home/kali/os/src/bootloader/stage2/main.c
-                _TEXT                 CODE           000008ff         00000091
-                CONST                 DATA           00000fc0         0000006f
-                CONST2                DATA           00001030         00000000
-                _DATA                 DATA           00001042         00000000
-/home/kali/os/src/bootloader/stage2/memory.c
-                _TEXT                 CODE           00000990         0000009e
-                CONST                 DATA           00001030         00000000
-                CONST2                DATA           00001030         00000000
-                _DATA                 DATA           00001042         00000000
-/home/kali/os/src/bootloader/stage2/stdio.c
-                _TEXT                 CODE           00000a2e         00000592
-                CONST                 DATA           00001030         00000000
-                CONST2                DATA           00001030         00000011
-                _DATA                 DATA           00001042         00000000
-Warning! W1014: stack segment not found
-
-
-                        +-----------------------+
-                        |   Linker Statistics   |
-                        +-----------------------+
-
-Stack size:  0200 (512.)
-Memory size:  7242 (29250.)
-Entry point address: 00000000
-Link time: 00:00.20
+.note.GNU-stack
+                0x00000000        0x0
+ .note.GNU-stack
+                0x00000000        0x0 /home/kali/os/build/stage2/c/disk.obj
+ .note.GNU-stack
+                0x00000000        0x0 /home/kali/os/build/stage2/c/fat12.obj
+ .note.GNU-stack
+                0x00000000        0x0 /home/kali/os/build/stage2/c/main.obj
+ .note.GNU-stack
+                0x00000000        0x0 /home/kali/os/build/stage2/c/memory.obj
+ .note.GNU-stack
+                0x00000000        0x0 /home/kali/os/build/stage2/c/stdio.obj

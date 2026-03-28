@@ -1,6 +1,13 @@
 #include "disk.h"
 #include "x86.h"
-#include "stdio.h"
+
+static uint16_t DISK_GetDataSegment(void)
+{
+    uint16_t segment;
+
+    __asm__ __volatile__("mov %%ds, %0" : "=rm"(segment));
+    return segment;
+}
 
 
 // Initializes a DISK structure with the parameters of the specified drive number
@@ -45,7 +52,7 @@ void DISK_LBA2CHS(DISK* disk, uint32_t lba, uint16_t* cylinderOut, uint16_t* sec
 
 
 // Reads sectors from the disk using CHS addressing, with retries on failure
-bool DISK_ReadSectors(DISK* disk, uint32_t lba, uint8_t sectors, void far* dataOut)
+bool DISK_ReadSectorsToSegment(DISK* disk, uint32_t lba, uint8_t sectors, uint16_t segment, uint16_t offset)
 {
     uint16_t cylinder, sector, head;
 
@@ -53,11 +60,21 @@ bool DISK_ReadSectors(DISK* disk, uint32_t lba, uint8_t sectors, void far* dataO
 
     for (int i = 0; i < 3; i++)
     {
-        if (x86_Disk_Read(disk->id, cylinder, sector, head, sectors, dataOut))
+        if (x86_Disk_Read(disk->id, cylinder, sector, head, sectors, segment, offset))
             return true;
 
         x86_Disk_Reset(disk->id);
     }
 
     return false;
+}
+
+// Reads sectors into a near pointer in the current data segment
+bool DISK_ReadSectors(DISK* disk, uint32_t lba, uint8_t sectors, void* dataOut)
+{
+    return DISK_ReadSectorsToSegment(disk,
+                                     lba,
+                                     sectors,
+                                     DISK_GetDataSegment(),
+                                     (uint16_t)(uintptr_t)dataOut);
 }

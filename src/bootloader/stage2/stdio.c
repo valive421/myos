@@ -15,15 +15,6 @@ void puts(const char* str)
     }
 }
 
-void puts_f(const char far* str)
-{
-    while(*str)
-    {
-        putc(*str);
-        str++;
-    }
-}
-
 #define PRINTF_STATE_NORMAL         0
 #define PRINTF_STATE_LENGTH         1
 #define PRINTF_STATE_LENGTH_SHORT   2
@@ -38,7 +29,7 @@ void puts_f(const char far* str)
 
 int* printf_number(int* argp, int length, bool sign, int radix);
 
-void _cdecl printf(const char* fmt, ...)
+void printf(const char* fmt, ...)
 {
     int* argp = (int*)&fmt;
     int state = PRINTF_STATE_NORMAL;
@@ -101,16 +92,8 @@ void _cdecl printf(const char* fmt, ...)
                                 argp++;
                                 break;
 
-                    case 's':   if (length == PRINTF_LENGTH_LONG || length == PRINTF_LENGTH_LONG_LONG) 
-                                {
-                                    puts_f(*(const char far**)argp);
-                                    argp += 2;
-                                }
-                                else 
-                                {
-                                    puts(*(const char**)argp);
-                                    argp++;
-                                }
+                    case 's':   puts(*(const char**)argp);
+                                argp++;
                                 break;
 
                     case '%':   putc('%');
@@ -155,7 +138,7 @@ const char g_HexChars[] = "0123456789abcdef";
 int* printf_number(int* argp, int length, bool sign, int radix)
 {
     char buffer[32];
-    unsigned long long number;
+    unsigned long long number = 0;
     int number_sign = 1;
     int pos = 0;
 
