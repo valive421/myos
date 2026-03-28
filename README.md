@@ -21,10 +21,11 @@ The project demonstrates:
 6. [Build and Run](#build-and-run)
 7. [Debugging](#debugging)
 8. [Important Code Paths](#important-code-paths)
-9. [Known Limitations](#known-limitations)
-10. [Roadmap Ideas](#roadmap-ideas)
-11. [Security and Safety Notes](#security-and-safety-notes)
-12. [File-by-File Reference (Brief)](#file-by-file-reference-brief)
+9. [Protected Mode Notes](#protected-mode-notes)
+10. [Known Limitations](#known-limitations)
+11. [Roadmap Ideas](#roadmap-ideas)
+12. [Security and Safety Notes](#security-and-safety-notes)
+13. [File-by-File Reference (Brief)](#file-by-file-reference-brief)
 
 ---
 
@@ -224,6 +225,33 @@ Decodes cluster chain entries from FAT12 packed format.
 x86_JumpToKernel(0x4000, 0x0000);
 ```
 Transfers control from stage2 to kernel entry point.
+
+---
+
+## Protected Mode Notes
+
+Current protected mode behavior is intentionally minimal and educational.
+
+### What is implemented
+- Kernel starts in real mode and prints a confirmation line.
+- Kernel sets up a minimal GDT and loads it via `lgdt`.
+- Kernel sets `CR0.PE` and performs a far jump to a 32-bit code segment.
+- In 32-bit mode, kernel prints directly to VGA text memory.
+
+### Transition sequence (high level)
+1. Real-mode setup (`DS/ES/SS`, stack).
+2. Build/load GDT descriptor.
+3. Set protected mode enable bit in `CR0`.
+4. Far jump to flush prefetch queue and enter 32-bit code.
+5. Reload segment registers for protected mode execution.
+6. Write protected-mode message.
+
+### What is not implemented yet
+- A20 enable/check routine.
+- IDT exception table and handlers.
+- PIC remap + hardware IRQ handling.
+- Paging and virtual memory.
+- User mode (Ring 3), TSS-based privilege transitions, syscall layer.
 
 ---
 

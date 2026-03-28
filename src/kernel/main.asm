@@ -134,5 +134,5 @@ protected_mode_entry:
 .halt:
     hlt
 
-msg_hello_rm: db 'Hello from kernel (real mode).', 0x0D, 0x0A, 0
-msg_hello_pm: db 'Hello from protected mode kernel', 0
+msg_hello_rm: db 'Hello from kernel Vaibhav (real mode).', 0x0D, 0x0A, 0
+msg_hello_pm: db 'Hello from protected mode kernel Vaibhav.', 0
