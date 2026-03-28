@@ -1,6 +1,4 @@
 
-times 510-($-$$) db 0
-dw 0xAA55
 bits 16
 org 0
 
@@ -28,16 +26,16 @@ puts:
     ret
 
 main:
-    ; Set up segment registers for 0x2000:0
-    mov ax, 0x2000
+    ; Set up segment registers for current load segment
+    mov ax, cs
     mov ds, ax
     mov es, ax
 
-    ; Set up stack (below kernel)
+    ; Set up stack in current segment
     mov ss, ax
-    mov sp, 0x7c00
+    mov sp, 0xFFFE
 
-    ; Print hello message
+    ; Print hello 
     mov si, msg_hello
     call puts
     cli
@@ -46,4 +44,4 @@ main:
 .halt:
     jmp .halt
 
-msg_hello: db 'Hello, World! from kernel!wedq', Endl, 0
+msg_hello: db 'Hello from kernel!', Endl, 0

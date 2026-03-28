@@ -1,13 +1,43 @@
 #include "stdint.h"
+#include "disk.h"
+#include "fat12.h"
+#include "memory.h"
 #include "stdio.h"
 
-void _cdecl cstart_(uint16_t bootDrive)
-{ 
-   const char far* far_str = "far string";
+#define KERNEL_LOAD_SEGMENT          0x4000
+#define KERNEL_LOAD_OFFSET           0x0000
 
-    puts("Hello world from C!\r\n");
-    printf("Formatted %% %c %s %ls\r\n", 'a', "string", far_str);
-    printf("Formatted %d %i %x %p %o %hd %hi %hhu %hhd\r\n", 1234, -5678, 0xdead, 0xbeef, 012345, (short)27, (short)-42, (unsigned char)20, (signed char)-10);
-    printf("Formatted %ld %lx %lld %llx\r\n", -100000000l, 0xdeadbeeful, 10200300400ll, 0xdeadbeeffeebdaedull);
+void _cdecl cstart_(uint16_t bootDrive)
+{
+    DISK disk;
+    FAT12_INFO fs;
+    uint32_t kernelFileSize;
+    void (_cdecl far* kernelEntry)(void);
+
+    puts("Stage2: FAT12 loader\r\n");
+
+    if (!DISK_Initialize(&disk, (uint8_t)bootDrive))
+    {
+        puts("Disk init failed\r\n");
+        for (;;);
+    }
+
+    if (!FAT12_Initialize(&disk, &fs))
+    {
+        puts("FAT12 init failed\r\n");
+        for (;;);
+    }
+
+    if (!FAT12_LoadFileByName(&disk, &fs, "KERNEL  BIN", KERNEL_LOAD_SEGMENT, KERNEL_LOAD_OFFSET, &kernelFileSize))
+    {
+        puts("Kernel load failed\r\n");
+        for (;;);
+    }
+
+    puts("Kernel loaded\r\n");
+
+    kernelEntry = (void (_cdecl far*)(void))MEM_FarPtr(KERNEL_LOAD_SEGMENT, KERNEL_LOAD_OFFSET);
+    kernelEntry();
+
     for (;;);
 }

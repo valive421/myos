@@ -2,6 +2,23 @@
 #include "stdint.h"
 
 
-
+// Basic x86 functions for the bootloader stage 2, implemented in assembly
 void _cdecl x86_div64_32(uint64_t dividend, uint32_t divisor, uint64_t* quotientOut, uint32_t* remainderOut);
+// Writes a character to the screen using teletype mode (scrolling)
 void _cdecl x86_Video_WriteCharTeletype(char c, uint8_t page);
+
+// Disk I/O functions using BIOS interrupts
+bool _cdecl x86_Disk_Reset(uint8_t drive);
+// Reads sectors from the disk using CHS addressing, with retries on failure
+bool _cdecl x86_Disk_Read(uint8_t drive,
+                          uint16_t cylinder,
+                          uint16_t sector,
+                          uint16_t head,
+                          uint8_t count,
+                          void far * dataOut);
+// Gets the drive parameters (cylinders, sectors, heads) for the specified drive number
+bool _cdecl x86_Disk_GetDriveParams(uint8_t drive,
+                                    uint8_t* driveTypeOut,
+                                    uint16_t* cylindersOut,
+                                    uint16_t* sectorsOut,
+                                    uint16_t* headsOut);

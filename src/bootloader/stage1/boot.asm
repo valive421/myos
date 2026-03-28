@@ -142,7 +142,7 @@ start:
     cli
     hlt
 
-; Error handlers
+
 floppy_error:
     mov si, msg_read_failed
     call puts
@@ -183,7 +183,7 @@ puts:
     pop si    
     ret
 
-; LBA to CHS (ax=LBA, returns cx=cyl/sec, dh=head)
+
 lba_to_chs:
     push ax
     push dx
@@ -238,7 +238,6 @@ disk_read:
     pop ax
     ret
 
-; Reset disk (dl=drive)
 disk_reset:
     pusha
     mov ah, 0
