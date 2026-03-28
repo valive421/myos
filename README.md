@@ -293,9 +293,3 @@ Transfers control from stage2 to kernel entry point.
 - **`makefile`**: builds kernel flat binary.
 
 ---
-
-## License
-
-No license file is currently present in the repository.
-
-If you plan to publish or accept contributions, add a license (for example MIT, BSD-2-Clause, or GPL) at repository root.
