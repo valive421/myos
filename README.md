@@ -77,7 +77,7 @@ BIOS
 ### Kernel (flat binary)
 - Prints a real-mode confirmation message first.
 - Enters 32-bit protected mode using a minimal GDT setup.
-- Prints a protected-mode message using VGA text memory.
+- Prints a protected-mode message using printf (VGA text output).
 
 ---
 
