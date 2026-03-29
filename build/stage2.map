@@ -10,68 +10,70 @@ Linker script and memory map
 
                 0x00000000                        . = 0x0
 
-.text           0x00000000      0xd0e
+.text           0x00000000      0xe98
  *(.text*)
  .text          0x00000000       0x20 /home/kali/os/build/stage2/asm/main.obj
                 0x00000000                entry
- .text          0x00000020      0x10f /home/kali/os/build/stage2/asm/x86.obj
+ .text          0x00000020      0x139 /home/kali/os/build/stage2/asm/x86.obj
                 0x00000020                x86_div64_32
                 0x00000058                x86_Video_WriteCharTeletype
-                0x00000072                x86_Disk_Reset
-                0x0000008d                x86_Disk_Read
-                0x000000d1                x86_Disk_GetDriveParams
-                0x00000120                x86_JumpToKernel
- *fill*         0x0000012f        0x1 
- .text          0x00000130      0x28a /home/kali/os/build/stage2/c/disk.obj
-                0x00000130                DISK_Initialize
-                0x000001a8                DISK_LBA2CHS
-                0x00000244                DISK_ReadSectorsToSegment
-                0x00000384                DISK_ReadSectors
- *fill*         0x000003ba        0x2 
- .text          0x000003bc      0x39c /home/kali/os/build/stage2/c/fat12.obj
-                0x000003bc                FAT12_Initialize
-                0x00000534                FAT12_LoadFileByName
- .text          0x00000758       0xee /home/kali/os/build/stage2/c/main.obj
-                0x00000758                cstart_
- *fill*         0x00000846        0x2 
- .text          0x00000848       0x1c /home/kali/os/build/stage2/c/memory.obj
-                0x00000848                MEM_CanAccessSegmentRange
- .text          0x00000864      0x4aa /home/kali/os/build/stage2/c/stdio.obj
-                0x00000864                putc
-                0x00000880                puts
-                0x000008c0                printf_number
-                0x00000b00                printf
+                0x00000072                x86_Serial_Init
+                0x00000086                x86_Serial_WriteChar
+                0x0000009c                x86_Disk_Reset
+                0x000000b7                x86_Disk_Read
+                0x000000fb                x86_Disk_GetDriveParams
+                0x0000014a                x86_JumpToKernel
+ *fill*         0x00000159        0x3 
+ .text          0x0000015c      0x28a /home/kali/os/build/stage2/c/disk.obj
+                0x0000015c                DISK_Initialize
+                0x000001d4                DISK_LBA2CHS
+                0x00000270                DISK_ReadSectorsToSegment
+                0x000003b0                DISK_ReadSectors
+ *fill*         0x000003e6        0x2 
+ .text          0x000003e8      0x39c /home/kali/os/build/stage2/c/fat12.obj
+                0x000003e8                FAT12_Initialize
+                0x00000560                FAT12_LoadFileByName
+ .text          0x00000784      0x127 /home/kali/os/build/stage2/c/main.obj
+                0x00000784                cstart_
+ *fill*         0x000008ab        0x1 
+ .text          0x000008ac       0x1c /home/kali/os/build/stage2/c/memory.obj
+                0x000008ac                MEM_CanAccessSegmentRange
+ .text          0x000008c8      0x5d0 /home/kali/os/build/stage2/c/stdio.obj
+                0x000008c8                putc
+                0x00000910                puts
+                0x00000974                printf_number
+                0x00000bdc                printf
 
-.rodata         0x00000d10      0x105
+.rodata         0x00000ea0      0x149
  *(.rodata*)
  .rodata.str1.1
-                0x00000d10       0x6f /home/kali/os/build/stage2/c/main.obj
- *fill*         0x00000d7f        0x1 
- .rodata        0x00000d80       0x95 /home/kali/os/build/stage2/c/stdio.obj
-                0x00000e04                g_HexChars
+                0x00000ea0       0xb3 /home/kali/os/build/stage2/c/main.obj
+ *fill*         0x00000f53        0x1 
+ .rodata        0x00000f54       0x95 /home/kali/os/build/stage2/c/stdio.obj
+                0x00000fd8                g_HexChars
 
-.eh_frame       0x00000e18      0x49c
- .eh_frame      0x00000e18      0x160 /home/kali/os/build/stage2/c/disk.obj
- .eh_frame      0x00000f78      0x110 /home/kali/os/build/stage2/c/fat12.obj
- .eh_frame      0x00001088       0xa4 /home/kali/os/build/stage2/c/main.obj
- .eh_frame      0x0000112c       0x2c /home/kali/os/build/stage2/c/memory.obj
- .eh_frame      0x00001158      0x15c /home/kali/os/build/stage2/c/stdio.obj
+.eh_frame       0x00000fec      0x4fc
+ .eh_frame      0x00000fec      0x160 /home/kali/os/build/stage2/c/disk.obj
+ .eh_frame      0x0000114c      0x110 /home/kali/os/build/stage2/c/fat12.obj
+ .eh_frame      0x0000125c       0xb4 /home/kali/os/build/stage2/c/main.obj
+ .eh_frame      0x00001310       0x2c /home/kali/os/build/stage2/c/memory.obj
+ .eh_frame      0x0000133c      0x1ac /home/kali/os/build/stage2/c/stdio.obj
 
-.data           0x000012c0        0x0
+.data           0x000014f0        0x0
  *(.data*)
- .data          0x000012c0        0x0 /home/kali/os/build/stage2/c/disk.obj
- .data          0x000012c0        0x0 /home/kali/os/build/stage2/c/fat12.obj
- .data          0x000012c0        0x0 /home/kali/os/build/stage2/c/main.obj
- .data          0x000012c0        0x0 /home/kali/os/build/stage2/c/memory.obj
- .data          0x000012c0        0x0 /home/kali/os/build/stage2/c/stdio.obj
+ .data          0x000014f0        0x0 /home/kali/os/build/stage2/c/disk.obj
+ .data          0x000014f0        0x0 /home/kali/os/build/stage2/c/fat12.obj
+ .data          0x000014f0        0x0 /home/kali/os/build/stage2/c/main.obj
+ .data          0x000014f0        0x0 /home/kali/os/build/stage2/c/memory.obj
+ .data          0x000014f0        0x0 /home/kali/os/build/stage2/c/stdio.obj
 
-.bss            0x000012c0     0x6200
+.bss            0x00001500     0x6200
  *(.bss*)
- .bss           0x000012c0        0x0 /home/kali/os/build/stage2/c/disk.obj
- .bss           0x000012c0     0x6200 /home/kali/os/build/stage2/c/fat12.obj
- .bss           0x000074c0        0x0 /home/kali/os/build/stage2/c/main.obj
- .bss           0x000074c0        0x0 /home/kali/os/build/stage2/c/memory.obj
- .bss           0x000074c0        0x0 /home/kali/os/build/stage2/c/stdio.obj
+ .bss           0x00001500        0x0 /home/kali/os/build/stage2/c/disk.obj
+ .bss           0x00001500     0x6200 /home/kali/os/build/stage2/c/fat12.obj
+ .bss           0x00007700        0x0 /home/kali/os/build/stage2/c/main.obj
+ .bss           0x00007700        0x0 /home/kali/os/build/stage2/c/memory.obj
+ .bss           0x00007700        0x0 /home/kali/os/build/stage2/c/stdio.obj
  *(COMMON)
 LOAD /home/kali/os/build/stage2/asm/main.obj
 LOAD /home/kali/os/build/stage2/asm/x86.obj

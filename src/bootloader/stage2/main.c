@@ -14,27 +14,34 @@ void cstart_(uint16_t bootDrive)
     FAT12_INFO fs;
     uint32_t kernelFileSize;
 
-    puts("Stage2: FAT12 loader\r\n");
+    x86_Serial_Init();
+
+    printf("Stage2: FAT12 loader\r\n");
+    printf("[S2] disk init...\r\n");
 
     if (!DISK_Initialize(&disk, (uint8_t)bootDrive))
     {
-        puts("Disk init failed\r\n");
+        printf("Disk init failed\r\n");
         for (;;);
     }
+
+    printf("[S2] FAT12 init...\r\n");
 
     if (!FAT12_Initialize(&disk, &fs))
     {
-        puts("FAT12 init failed\r\n");
+        printf("FAT12 init failed\r\n");
         for (;;);
     }
+
+    printf("[S2] load KERNEL. BIN...\r\n");
 
     if (!FAT12_LoadFileByName(&disk, &fs, "KERNEL  BIN", KERNEL_LOAD_SEGMENT, KERNEL_LOAD_OFFSET, &kernelFileSize))
     {
-        puts("Kernel load failed\r\n");
+        printf("Kernel load failed\r\n");
         for (;;);
     }
 
-    puts("Kernel loaded\r\n");
+    printf("Kernel loaded\r\n");
 
     x86_JumpToKernel(KERNEL_LOAD_SEGMENT, KERNEL_LOAD_OFFSET);
 

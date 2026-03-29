@@ -7,6 +7,10 @@ void x86_div64_32(uint64_t dividend, uint32_t divisor, uint64_t* quotientOut, ui
 // Writes a character to the screen using teletype mode (scrolling)
 void x86_Video_WriteCharTeletype(char c, uint8_t page);
 
+// BIOS serial I/O (INT 14h), COM1
+void x86_Serial_Init(void);
+void x86_Serial_WriteChar(char c);
+
 // Disk I/O functions using BIOS interrupts
 bool x86_Disk_Reset(uint8_t drive);
 // Reads sectors from the disk using CHS addressing, with retries on failure

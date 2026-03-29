@@ -3,7 +3,11 @@
 
 void putc(char c)
 {
+    if (c == '\n')
+        x86_Serial_WriteChar('\r');
+
     x86_Video_WriteCharTeletype(c, 0);
+    x86_Serial_WriteChar(c);
 }
 
 void puts(const char* str)

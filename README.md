@@ -16,16 +16,18 @@ The project demonstrates:
 1. [Project Goals](#project-goals)
 2. [Current Boot Flow](#current-boot-flow)
 3. [Architecture Overview](#architecture-overview)
-4. [Repository Structure](#repository-structure)
-5. [Prerequisites](#prerequisites)
-6. [Build and Run](#build-and-run)
-7. [Debugging](#debugging)
-8. [Important Code Paths](#important-code-paths)
-9. [Protected Mode Notes](#protected-mode-notes)
-10. [Known Limitations](#known-limitations)
-11. [Roadmap Ideas](#roadmap-ideas)
-12. [Security and Safety Notes](#security-and-safety-notes)
-13. [File-by-File Reference (Brief)](#file-by-file-reference-brief)
+4. [Kernel Stage (Detailed)](#kernel-stage-detailed)
+5. [Output Visibility Across Stages](#output-visibility-across-stages)
+6. [Repository Structure](#repository-structure)
+7. [Prerequisites](#prerequisites)
+8. [Build and Run](#build-and-run)
+9. [Debugging](#debugging)
+10. [Important Code Paths](#important-code-paths)
+11. [Protected Mode Notes](#protected-mode-notes)
+12. [Known Limitations](#known-limitations)
+13. [Roadmap Ideas](#roadmap-ideas)
+14. [Security and Safety Notes](#security-and-safety-notes)
+15. [File-by-File Reference (Brief)](#file-by-file-reference-brief)
 
 ---
 
@@ -79,6 +81,60 @@ BIOS
 
 ---
 
+## Kernel Stage (Detailed)
+
+The kernel stage is split into focused modules. `main.asm` only handles bootstrap and mode transition; most behavior is in C.
+
+### Bootstrap and mode transition
+- `src/kernel/main.asm`
+  - starts in real mode
+  - enables A20 (fast gate)
+  - computes and exports `kernel_base_phys`
+  - enters protected mode and calls `kmain`
+
+### Core init orchestration
+- `src/kernel/kernel.c`
+  - initialization order: A20 helper, VGA, serial, GDT, IDT, timer, keyboard, PIC, `sti`
+  - starts shell loop
+  - draws fixed timer heartbeat (`*` blink) and IRQ status (`IRQ0/IRQ1`)
+
+### Descriptor and interrupt architecture
+- `src/kernel/gdt.c/.h`: builds GDT entries + TSS, loads with `lgdt`, activates TSS with `ltr`
+- `src/kernel/idt.c/.h`: IDT setup and `lidt`
+- `src/kernel/interrupts.asm`: ISR/IRQ stubs and dispatch tables
+- `src/kernel/interrupts.c/.h`: C handlers, fatal exception diagnostics, IRQ counters
+- `src/kernel/pic.c/.h`: PIC remap/mask/unmask/EOI
+
+### Devices and runtime utilities
+- `src/kernel/timer.c/.h`: PIT programming and tick counter
+- `src/kernel/keyboard.c/.h`: scancode decode, shift handling, input ring buffer
+- `src/kernel/vga.c/.h`: text console output, hex formatting, fixed-position writes
+- `src/kernel/serial.c/.h`: COM1 logs for debug visibility in terminal
+- `src/kernel/io.c/.h`: in/out port helpers
+- `src/kernel/boot.c/.h`: linear address helper and A20 helper
+- `src/kernel/shell.c/.h`: command parser (`help`, `clear`, `ticks`, `echo`)
+
+### Current phase-1 runtime checks
+- IRQ0 heartbeat visible by blinking `*` at a fixed screen cell
+- IRQ status line updates when timer/keyboard IRQs are observed
+- `ticks` command supports live mode (`q` to quit)
+
+---
+
+## Output Visibility Across Stages
+
+To avoid losing early boot diagnostics:
+
+- Stage2 prints are mirrored to BIOS serial (`INT 14h`, COM1) in addition to screen output.
+- `run.sh` launches QEMU with serial mapped to terminal (`-serial stdio -monitor none`).
+- Kernel VGA init does not clear the entire text buffer at startup; early messages remain visible instead of being immediately erased.
+
+This gives two debug channels:
+1. On-screen text (BIOS + kernel VGA)
+2. Terminal serial log (Stage2 + kernel serial)
+
+---
+
 ## Repository Structure
 
 ```text
@@ -110,8 +166,23 @@ BIOS
     │       ├── stdio.c / stdio.h
     │       ├── x86.asm / x86.h
     └── kernel/
-        ├── main.asm
-        └── makefile
+      ├── boot.c / boot.h
+      ├── gdt.c / gdt.h
+      ├── idt.c / idt.h
+      ├── interrupts.asm
+      ├── interrupts.c / interrupts.h
+      ├── io.c / io.h
+      ├── kernel.c
+      ├── keyboard.c / keyboard.h
+      ├── linker.ld
+      ├── main.asm
+      ├── makefile
+      ├── pic.c / pic.h
+      ├── serial.c / serial.h
+      ├── shell.c / shell.h
+      ├── timer.c / timer.h
+      ├── types.h
+      └── vga.c / vga.h
 ```
 
 ---
@@ -145,6 +216,8 @@ make clean && make
 ```bash
 ./run.sh
 ```
+
+`run.sh` enables serial-to-terminal output so pre-kernel and kernel debug text is visible in terminal.
 
 ### What `make` produces
 - `build/stage1.bin`
@@ -195,6 +268,7 @@ Uses:
 ### BIOS interface (`src/bootloader/stage2/x86.asm`)
 - `x86_Disk_Read` / `x86_Disk_Reset` / `x86_Disk_GetDriveParams`
 - `x86_Video_WriteCharTeletype`
+- `x86_Serial_Init` / `x86_Serial_WriteChar`
 - `x86_div64_32` helper used for division in 16-bit environment
 - `x86_JumpToKernel` far jump helper used by stage2 C code
 
@@ -230,13 +304,18 @@ Transfers control from stage2 to kernel entry point.
 
 ## Protected Mode Notes
 
-Current protected mode behavior is intentionally minimal and educational.
+Current protected mode behavior is still educational, but now includes a complete Phase-1 baseline.
 
 ### What is implemented
 - Kernel starts in real mode and prints a confirmation line.
-- Kernel sets up a minimal GDT and loads it via `lgdt`.
-- Kernel sets `CR0.PE` and performs a far jump to a 32-bit code segment.
-- In 32-bit mode, kernel prints directly to VGA text memory.
+- Kernel sets up protected mode in `main.asm` and transfers to C `kmain`.
+- GDT + TSS setup in C (`gdt.c`) with `ltr`.
+- IDT setup in C (`idt.c`) and exception/IRQ stubs in `interrupts.asm`.
+- PIC remap + IRQ EOI handling (`pic.c`).
+- PIT timer driver (`timer.c`) and keyboard driver (`keyboard.c`).
+- Basic command shell (`shell.c`) with `help`, `clear`, `ticks`, `echo`.
+- VGA text output module with helpers for diagnostics (`vga.c`).
+- Serial COM1 diagnostics enabled in runtime (`serial.c`) and QEMU launch.
 
 ### Transition sequence (high level)
 1. Real-mode setup (`DS/ES/SS`, stack).
@@ -247,20 +326,21 @@ Current protected mode behavior is intentionally minimal and educational.
 6. Write protected-mode message.
 
 ### What is not implemented yet
-- A20 enable/check routine.
-- IDT exception table and handlers.
-- PIC remap + hardware IRQ handling.
 - Paging and virtual memory.
-- User mode (Ring 3), TSS-based privilege transitions, syscall layer.
+- Dynamic memory allocator.
+- Process model / user mode (Ring 3) runtime.
+- Filesystem/VFS in kernel.
+- Syscall ABI and multitasking.
 
 ---
 
 ## Known Limitations
 
 - FAT12 root-directory-only loading (no subdirectories).
-- Minimal protected mode support only (no paging/IDT/interrupt framework yet).
+- Kernel is currently identity-with-base segmented (no paging yet).
 - Kernel is a flat binary payload (no ELF loader).
-- Limited diagnostics and error recovery paths.
+- Keyboard currently uses a simple Set-1 map and no modifiers beyond Shift.
+- Shell is intentionally minimal (single-line input, no history/edit keys).
 
 ---
 
@@ -317,7 +397,22 @@ Current protected mode behavior is intentionally minimal and educational.
 - **`makefile`**: compiles/links stage2 objects and outputs `stage2.bin`.
 
 ### `src/kernel`
-- **`main.asm`**: kernel entry code and hello print routine.
-- **`makefile`**: builds kernel flat binary.
+- **`main.asm`**: real-mode entry, protected-mode transition, bootstrap symbols.
+- **`kernel.c`**: kernel startup sequence and runtime loop.
+- **`gdt.c/h`**: GDT + TSS setup and load.
+- **`idt.c/h`**: IDT table setup and load.
+- **`interrupts.asm`**: ISR/IRQ stubs and dispatch tables.
+- **`interrupts.c/h`**: C interrupt handlers and IRQ counters.
+- **`pic.c/h`**: 8259 PIC remap/mask/EOI operations.
+- **`timer.c/h`**: PIT initialization and tick counter.
+- **`keyboard.c/h`**: keyboard scancode decode + ring buffer.
+- **`shell.c/h`**: simple command shell.
+- **`vga.c/h`**: VGA text output backend.
+- **`serial.c/h`**: COM1 serial diagnostics.
+- **`io.c/h`**: low-level port I/O.
+- **`boot.c/h`**: kernel base/linear address helpers and A20 fast gate.
+- **`types.h`**: kernel-local integer type definitions.
+- **`linker.ld`**: kernel linker layout.
+- **`makefile`**: builds kernel ELF and raw `kernel.bin`.
 
 ---

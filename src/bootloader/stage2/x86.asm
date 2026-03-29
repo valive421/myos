@@ -54,6 +54,35 @@ x86_Video_WriteCharTeletype:
     pop ebp
     retd
 
+global x86_Serial_Init
+x86_Serial_Init:
+    push ebp
+    mov ebp, esp
+
+    mov ah, 00h
+    mov al, 0E3h        ; 9600 baud, no parity, 1 stop bit, 8 data bits
+    xor dx, dx          ; COM1
+    int 14h
+
+    mov esp, ebp
+    pop ebp
+    retd
+
+global x86_Serial_WriteChar
+x86_Serial_WriteChar:
+    ; [ebp + 8] = character
+    push ebp
+    mov ebp, esp
+
+    mov ah, 01h
+    mov al, [ebp + 8]
+    xor dx, dx          ; COM1
+    int 14h
+
+    mov esp, ebp
+    pop ebp
+    retd
+
 global x86_Disk_Reset
 x86_Disk_Reset:
     ; [ebp + 8] = drive
