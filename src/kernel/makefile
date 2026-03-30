@@ -8,7 +8,7 @@ CFLAGS?=-m32 -ffreestanding -fno-pic -fno-pie -fno-stack-protector -fno-builtin 
 LDFLAGS?=-m elf_i386 -nostdlib -T linker.ld
 
 SOURCES_ASM=main.asm interrupts.asm
-SOURCES_C=kernel.c io.c boot.c vga.c gdt.c idt.c pic.c interrupts.c timer.c keyboard.c shell.c serial.c stdio.c
+SOURCES_C=kernel.c io.c boot.c vga.c gdt.c idt.c pic.c interrupts.c timer.c keyboard.c shell.c serial.c stdio.c memory.c
 
 OBJECTS_ASM=$(patsubst %.asm,$(BUILD_DIR)/kernel/asm/%.obj,$(SOURCES_ASM))
 OBJECTS_C=$(patsubst %.c,$(BUILD_DIR)/kernel/c/%.obj,$(SOURCES_C))

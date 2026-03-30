@@ -3,6 +3,7 @@
 #include "idt.h"
 #include "interrupts.h"
 #include "keyboard.h"
+#include "memory.h"
 #include "pic.h"
 #include "serial.h"
 #include "shell.h"
@@ -46,6 +47,15 @@ void kmain(void)
 
 	idt_init();
 	printf("IDT ready\n");
+
+	memory_init();
+	serial_write_str("[K] heap total bytes=0x");
+	serial_write_hex32(memory_heap_total());
+	serial_write_str("\n");
+	printf("Heap ready: total=%u bytes\n", memory_heap_total());
+	int heap_ok = memory_run_self_test();
+	printf("Heap self-test: %s\n", heap_ok ? "PASS" : "FAIL");
+	serial_write_str(heap_ok ? "[K] heap self-test PASS\n" : "[K] heap self-test FAIL\n");
 
 	timer_init(100);
 	keyboard_init();

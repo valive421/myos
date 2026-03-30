@@ -1,5 +1,6 @@
 #include "vga.h"
 #include "boot.h"
+#include "stdio.h"
 
 // vga.c: VGA text mode output routines
 // Provides functions for writing to VGA text buffer
@@ -102,9 +103,7 @@ void puts(const char* s)
 
 void vga_puthex8(uint8_t value)
 {
-    static const char hex[] = "0123456789ABCDEF";
-    putc(hex[(value >> 4) & 0x0F]);
-    putc(hex[value & 0x0F]);
+    printf("%X%X", (value >> 4) & 0x0F, value & 0x0F);
 }
 
 void vga_puthex32(uint32_t value)

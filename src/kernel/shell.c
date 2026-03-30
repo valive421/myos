@@ -1,5 +1,6 @@
 #include "shell.h"
 #include "keyboard.h"
+#include "memory.h"
 #include "stdio.h"
 #include "timer.h"
 #include "vga.h"
@@ -94,7 +95,22 @@ static void execute_command(const char* cmd)
 
     if (str_eq(cmd, "help"))
     {
-        printf("Commands: help clear ticks echo\n");
+        printf("Commands: help clear ticks echo mem memtest\n");
+        return;
+    }
+
+    if (str_eq(cmd, "mem"))
+    {
+        printf("heap total=%u used=%u free=%u\n",
+            memory_heap_total(),
+            memory_heap_used(),
+            memory_heap_free());
+        return;
+    }
+
+    if (str_eq(cmd, "memtest"))
+    {
+        printf("memory self-test: %s\n", memory_run_self_test() ? "PASS" : "FAIL");
         return;
     }
 

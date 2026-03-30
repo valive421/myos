@@ -25,9 +25,8 @@ The project demonstrates:
 10. [Important Code Paths](#important-code-paths)
 11. [Protected Mode Notes](#protected-mode-notes)
 12. [Known Limitations](#known-limitations)
-13. [Roadmap Ideas](#roadmap-ideas)
-14. [Security and Safety Notes](#security-and-safety-notes)
-15. [File-by-File Reference (Brief)](#file-by-file-reference-brief)
+13. [Security and Safety Notes](#security-and-safety-notes)
+14. [File-by-File Reference (Brief)](#file-by-file-reference-brief)
 
 ---
 
@@ -118,6 +117,20 @@ The kernel stage is split into focused modules. `main.asm` only handles bootstra
 - IRQ0 heartbeat visible by blinking `*` at a fixed screen cell
 - IRQ status line updates when timer/keyboard IRQs are observed
 - `ticks` command supports live mode (`q` to quit)
+
+### Phase-2.1 memory management (implemented)
+- Added a kernel free-list allocator (`kmalloc`/`kcalloc`/`kfree`) in `src/kernel/memory.c/.h`.
+- Heap starts at `__kernel_end` (exported by linker) and reserves 512 KiB.
+- Added runtime stats APIs: total/used/free heap bytes.
+- Added allocator self-test (`memory_run_self_test`) used at boot and from shell.
+- Allocation API behavior:
+  - `kmalloc(size)` allocates aligned heap memory using first-fit.
+  - `kcalloc(count, size)` allocates and zeroes memory.
+  - `kfree(ptr)` frees blocks and coalesces adjacent free blocks.
+  - `memory_run_self_test()` performs demo allocations, verifies data, frees blocks, and validates free-space recovery.
+- Shell commands:
+  - `mem` → shows heap total/used/free
+  - `memtest` → runs allocator self-test and prints `PASS`/`FAIL`
 
 ---
 
@@ -344,16 +357,6 @@ Current protected mode behavior is still educational, but now includes a complet
 
 ---
 
-## Roadmap Ideas
-
-- Load files from subdirectories.
-- Add A20 enable routine before entering protected mode.
-- Introduce GDT/IDT and basic interrupt handlers.
-- Move kernel to C/ASM mixed architecture.
-- Add memory map collection (E820) and boot info handoff struct.
-- Add automated test boot checks in CI (QEMU serial output assertions).
-
----
 
 ## Security and Safety Notes
 
