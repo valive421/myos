@@ -20,6 +20,8 @@
 #include "timer.h"
 #include "vga.h"
 
+extern void user_test_entry(void);
+
 static void write_fixed_text(uint8_t row, uint8_t col, const char* s)
 {
 	while (*s && col < 80)
@@ -79,6 +81,10 @@ void kmain(void)
 	int counter_id = task_spawn_counter();
 	if (counter_id > 0)
 		printf("Task counter started id=%d\n", counter_id);
+
+	int user_id = task_create_user("user", (uint32_t)user_test_entry);
+	if (user_id > 0)
+		printf("User task started id=%d\n", user_id);
 
 	// Timer/keyboard + interrupt controller setup.
 	timer_init(100);

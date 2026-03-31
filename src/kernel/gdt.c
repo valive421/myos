@@ -135,3 +135,8 @@ void gdt_init(void)
         : "ax", "memory"
     );
 }
+
+void gdt_set_kernel_stack(uint32_t esp0)
+{
+    g_Tss.esp0 = esp0;
+}

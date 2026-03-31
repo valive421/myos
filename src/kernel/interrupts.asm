@@ -116,6 +116,9 @@ ISR_ERR   29
 ISR_ERR   30
 ISR_NOERR 31
 
+; Syscall vector 0x80
+ISR_NOERR 128
+
 ; IRQs 0-15 remapped to vectors 32-47
 IRQ_STUB 0, 32
 IRQ_STUB 1, 33

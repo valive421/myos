@@ -21,6 +21,7 @@ extern void* irq_stub_table[16];
 
 void interrupts_install_exceptions(void);
 void interrupts_install_irqs(void);
+void interrupts_install_syscalls(void);
 
 void isr_handler(int_frame_t* frame);
 void irq_handler(int_frame_t* frame);

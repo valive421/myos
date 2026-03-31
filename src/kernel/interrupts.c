@@ -5,12 +5,16 @@
 #include "idt.h"
 #include "keyboard.h"
 #include "pic.h"
+#include "syscall.h"
 #include "stdio.h"
+#include "task.h"
 #include "timer.h"
 #include "vga.h"
 
 static volatile uint32_t g_Irq0Count = 0;
 static volatile uint32_t g_Irq1Count = 0;
+
+extern void isr128(void);
 
 void interrupts_install_exceptions(void)
 {
@@ -24,8 +28,36 @@ void interrupts_install_irqs(void)
         idt_set_gate((uint8_t)(32 + i), (uint32_t)irq_stub_table[i], 0x08, 0x8E);
 }
 
+void interrupts_install_syscalls(void)
+{
+    // Present + 32-bit interrupt gate + DPL=3 so Ring3 can invoke int 0x80.
+    idt_set_gate(0x80, (uint32_t)isr128, 0x08, 0xEE);
+}
+
 void isr_handler(int_frame_t* frame)
 {
+    if (frame && frame->int_no == 0x80)
+    {
+        syscall_handle(frame);
+        return;
+    }
+
+    // If a user task faults (e.g., privileged instruction), kill it but keep the kernel alive.
+    if (frame && ((frame->cs & 3u) == 3u))
+    {
+        printf("\n[USER-FAULT] EXC #%x err=0x%x eip=0x%x\n",
+               frame->int_no,
+               frame->err_code,
+               frame->eip);
+
+        task_t* cur = task_current();
+        if (cur)
+        {
+            __asm__ __volatile__("sti" : : : "memory");
+            task_exit(cur);
+        }
+    }
+
     printf("\n[FATAL] EXC #%x err=0x%x eip=0x%x\n",
            frame->int_no,
            frame->err_code,

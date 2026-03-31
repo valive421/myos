@@ -36,6 +36,7 @@ void idt_init(void)
 
     interrupts_install_exceptions();
     interrupts_install_irqs();
+    interrupts_install_syscalls();
 
     g_IdtPtr.limit = (uint16_t)(sizeof(g_Idt) - 1);
     g_IdtPtr.base = linear_addr(&g_Idt);

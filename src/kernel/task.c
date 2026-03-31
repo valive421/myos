@@ -7,11 +7,14 @@
 // - Tasks run until they call task_yield/task_sleep/task_exit.
 
 #include "task.h"
+#include "gdt.h"
+#include "serial.h"
 #include "timer.h"
 #include "vga.h"
 
 #define TASK_MAX 16
 #define TASK_STACK_SIZE 4096
+#define USER_STACK_SIZE 4096
 
 typedef struct
 {
@@ -30,11 +33,18 @@ struct task
     uint32_t runs;
     uint32_t wake_tick;
     uint32_t data0;
+
+    uint8_t is_user;
+    uint32_t user_entry;
+    uint32_t user_stack_top;
     task_entry_t entry;
     char name[16];
     task_context_t ctx;
     uint8_t stack[TASK_STACK_SIZE];
+    uint8_t user_stack[USER_STACK_SIZE];
 };
+
+extern void task_enter_user_mode(uint32_t user_eip, uint32_t user_esp);
 
 extern void task_context_switch(task_context_t* from, task_context_t* to);
 
@@ -75,6 +85,29 @@ static void task_bootstrap(void)
         ;
 }
 
+static void task_user_entry(task_t* task)
+{
+    if (!task || task->is_user == 0 || task->user_entry == 0 || task->user_stack_top == 0)
+        task_exit(task);
+
+    // Ensure Ring3 -> Ring0 transitions land on this task's kernel stack.
+    uint32_t kstack_top = (uint32_t)(task->stack + TASK_STACK_SIZE);
+    kstack_top &= ~0x0Fu;
+    gdt_set_kernel_stack(kstack_top);
+
+    serial_write_str("[K] enter user eip=0x");
+    serial_write_hex32(task->user_entry);
+    serial_write_str(" usp=0x");
+    serial_write_hex32(task->user_stack_top);
+    serial_write_str(" ksp0=0x");
+    serial_write_hex32(kstack_top);
+    serial_write_str("\n");
+
+    task_enter_user_mode(task->user_entry, task->user_stack_top);
+    for (;;)
+        ;
+}
+
 static void task_prepare_initial_context(task_t* t)
 {
     uint32_t top = (uint32_t)(t->stack + TASK_STACK_SIZE);
@@ -98,6 +131,9 @@ void tasking_init(void)
         g_Tasks[i].runs = 0;
         g_Tasks[i].wake_tick = 0;
         g_Tasks[i].data0 = 0;
+        g_Tasks[i].is_user = 0;
+        g_Tasks[i].user_entry = 0;
+        g_Tasks[i].user_stack_top = 0;
         g_Tasks[i].entry = 0;
         g_Tasks[i].name[0] = 0;
         g_Tasks[i].ctx.esp = 0;
@@ -138,8 +174,48 @@ int task_create(const char* name, task_entry_t entry, uint32_t data0)
             g_Tasks[i].runs = 0;
             g_Tasks[i].wake_tick = 0;
             g_Tasks[i].data0 = data0;
+            g_Tasks[i].is_user = 0;
+            g_Tasks[i].user_entry = 0;
+            g_Tasks[i].user_stack_top = 0;
             g_Tasks[i].entry = entry;
             str_copy16(g_Tasks[i].name, name ? name : "task");
+            task_prepare_initial_context(&g_Tasks[i]);
+            return (int)g_Tasks[i].id;
+        }
+    }
+
+    return -1;
+}
+
+// Create a Ring3 user task.
+// `user_entry` is the user-mode instruction pointer (EIP) to start executing.
+int task_create_user(const char* name, uint32_t user_entry)
+{
+    if (user_entry == 0)
+        return -1;
+
+    for (uint32_t i = 0; i < TASK_MAX; i++)
+    {
+        if (g_Tasks[i].state == TASK_STATE_DEAD)
+        {
+            g_Tasks[i].id = g_NextId++;
+            if (g_NextId == 0)
+                g_NextId = 1;
+
+            g_Tasks[i].state = TASK_STATE_READY;
+            g_Tasks[i].runs = 0;
+            g_Tasks[i].wake_tick = 0;
+            g_Tasks[i].data0 = 0;
+
+            g_Tasks[i].is_user = 1;
+            g_Tasks[i].user_entry = user_entry;
+
+            uint32_t u_top = (uint32_t)(g_Tasks[i].user_stack + USER_STACK_SIZE);
+            u_top &= ~0x0Fu;
+            g_Tasks[i].user_stack_top = u_top;
+
+            g_Tasks[i].entry = task_user_entry;
+            str_copy16(g_Tasks[i].name, name ? name : "user");
             task_prepare_initial_context(&g_Tasks[i]);
             return (int)g_Tasks[i].id;
         }
@@ -237,6 +313,12 @@ void task_schedule(void)
         t->runs++;
         g_LastIndex = idx;
         g_CurrentTask = t;
+
+        // Prepare ring0 stack for any CPL change (Ring3 syscalls/IRQs).
+        uint32_t kstack_top = (uint32_t)(t->stack + TASK_STACK_SIZE);
+        kstack_top &= ~0x0Fu;
+        gdt_set_kernel_stack(kstack_top);
+
         task_context_switch(&g_SchedulerCtx, &t->ctx);
         g_CurrentTask = 0;
 
@@ -245,6 +327,16 @@ void task_schedule(void)
 
         return;
     }
+}
+
+task_t* task_current(void)
+{
+    return g_CurrentTask;
+}
+
+int task_current_is_user(void)
+{
+    return (g_CurrentTask && g_CurrentTask->is_user) ? 1 : 0;
 }
 
 // Number of active (non-dead) tasks.
