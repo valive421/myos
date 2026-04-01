@@ -72,6 +72,12 @@ void vga_write_at(uint8_t row, uint8_t col, char c)
 
 void putc(char c)
 {
+    if (c == '\b')
+    {
+        vga_backspace();
+        return;
+    }
+
     if (c == '\n')
     {
         g_CursorCol = 0;

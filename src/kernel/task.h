@@ -24,6 +24,7 @@ typedef struct
 void tasking_init(void);
 int task_create(const char* name, task_entry_t entry, uint32_t data0);
 int task_create_user(const char* name, uint32_t user_entry);
+int task_create_user_arg(const char* name, uint32_t user_entry, const char* arg0);
 int task_kill(uint32_t id);
 void task_schedule(void);
 uint32_t task_count(void);
@@ -32,6 +33,7 @@ int task_get_info(uint32_t slot, task_info_t* out);
 
 task_t* task_current(void);
 int task_current_is_user(void);
+int task_any_user_alive(void);
 
 void task_sleep(task_t* task, uint32_t ticks);
 void task_yield(task_t* task);

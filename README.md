@@ -1,14 +1,17 @@
 # Valive OS
 
-Educational x86 OS project that boots from a FAT12 floppy image, loads a second-stage bootloader, enters a protected-mode kernel, and runs core phase-1/phase-2 subsystems (interrupts, shell, memory manager, cooperative tasking).
+Educational x86 OS project that boots from a FAT12 floppy image, loads a second-stage bootloader, enters a protected-mode kernel, and runs core subsystems (interrupts, shell, memory manager, cooperative tasking) plus Ring3 user tasks via an `int 0x80` syscall ABI and a minimal VFS persisted to a FAT12 data disk.
 
 ---
 
 ## Highlights
 
 - BIOS boot pipeline: Stage1 → Stage2 → Kernel
-- FAT12 file loading for `stage2.bin` and `kernel.bin`
+- FAT12 file loading for `stage2.bin` and `kernel.bin` (boot floppy)
 - Protected mode kernel startup (GDT/IDT/PIC/TSS path)
+- Ring3 user-mode tasks + `int 0x80` syscalls
+- Minimal VFS syscalls with FAT12-backed persistence on `build/persist.img`
+- User program: `unote <file>` notepad (ESC saves + quits)
 - Drivers: VGA text, serial (COM1), PIT timer, PS/2 keyboard
 - Shell commands for runtime diagnostics
 - Phase 2 subsystems:
@@ -35,6 +38,7 @@ Kernel (real mode entry -> protected mode)
 	-> bootstrap (A20, GDT handoff)
 	-> kmain()
 	-> init core subsystems
+	-> start background + Ring3 user tasks
 	-> run shell + scheduler loop
 ```
 
@@ -85,6 +89,9 @@ Key subtasks:
 - Timer and keyboard drivers (`timer.c`, `keyboard.c`)
 - Console + serial output (`vga.c`, `serial.c`, `stdio.c`)
 - Shell (`shell.c`)
+- Syscall dispatcher (`syscall.c`) + Ring3 entry (`user_mode.asm`)
+- ATA PIO disk I/O (`ata.c`) + FAT12 persistence (`fat12.c`)
+- Minimal VFS (`vfs.c`) exposed to userland via syscalls
 
 ---
 
@@ -132,6 +139,13 @@ Scheduling model summary:
 - Round-robin task selection among READY tasks
 - Sleeping tasks wake on PIT tick timeout
 
+## Phase 3: Ring3 Userland + Syscalls + Persistent VFS (Implemented)
+
+- Ring3 tasks entered via IRET, with Ring3→Ring0 transitions through `int 0x80`
+- Minimal syscall ABI for console output, heap allocation, sleeping/yielding, and VFS operations
+- Minimal in-memory VFS that syncs files to an attached FAT12 data disk (root directory only)
+- Ring3 notepad (`unote <file>`): type-only editing, backspace-at-end, ESC saves + quits
+
 ---
 
 ## Shell Commands
@@ -146,6 +160,7 @@ Scheduling model summary:
 - `spawn` — spawn a background counter task
 - `kill <id>` — kill task by id
 - `tasktest` — task scheduler self-test
+- `unote <file>` — open/create a text file in Ring3 notepad (ESC saves+quits)
 
 ---
 
@@ -175,18 +190,32 @@ src/
 		idt.c / idt.h
 		interrupts.asm
 		interrupts.c / interrupts.h
+		user_mode.asm
+		syscall.c / syscall.h
 		pic.c / pic.h
 		timer.c / timer.h
 		keyboard.c / keyboard.h
 		memory.c / memory.h
 		task.c / task.h
 		shell.c / shell.h
+		vfs.c / vfs.h
+		ata.c / ata.h
+		fat12.c / fat12.h
 		vga.c / vga.h
 		serial.c / serial.h
 		stdio.c / stdio.h
 		io.c / io.h
 		linker.ld
 		makefile
+
+	user/
+		notepad.c
+		user_test.c
+		include/
+			valive/
+				syscall.h
+				types.h
+				vfs.h
 ```
 
 ---
@@ -213,12 +242,23 @@ make clean && make
 ./run.sh
 ```
 
-`run.sh` uses serial-to-stdio, so Stage2 and kernel diagnostics are visible directly in terminal.
+`run.sh` creates/keeps a persistent FAT12 disk image at `build/persist.img` and attaches it to QEMU as an IDE drive.
+
+Notes saved through the VFS (for example via `unote`) are written to `build/persist.img` and survive reboots. `make clean` preserves this image.
+
+To reset/wipe persistent data:
+
+```bash
+rm -f build/persist.img
+```
 
 ## Run (headless serial log)
 
 ```bash
-qemu-system-i386 -drive if=floppy,format=raw,file=build/main_floppy.img -serial stdio -monitor none -display none
+qemu-system-i386 \
+	-drive if=floppy,format=raw,file=build/main_floppy.img \
+	-drive if=ide,format=raw,file=build/persist.img \
+	-serial stdio -monitor none -display none
 ```
 
 Useful for CI-style checks and quick validation of boot + self-test logs.
@@ -231,8 +271,10 @@ Useful for CI-style checks and quick validation of boot + self-test logs.
 
 - Cooperative scheduling only (no timer-preemptive task switch yet)
 - No paging/virtual memory yet
-- No user mode/syscall boundary yet
-- No kernel filesystem/VFS layer yet
+- Ring3 exists, but without paging there is no real memory isolation (CPL separation only)
+- FAT12 persistence is a small subset: root directory only, strict 8.3 names (A-Z/0-9/_/-), no subdirectories/LFN
+- VFS is intentionally minimal (flat namespace, small fd/file limits, sync-on-close)
+- Notepad is intentionally minimal (append/edit-at-end only; ESC saves+quits)
 - Shell is intentionally minimal (line mode)
 
 ---

@@ -2,7 +2,9 @@
 
 #include "memory.h"
 #include "serial.h"
+#include "keyboard.h"
 #include "task.h"
+#include "vfs.h"
 #include "vga.h"
 
 static uint32_t syscall_write_str(const char* s)
@@ -17,10 +19,8 @@ static uint32_t syscall_write_str(const char* s)
         if (c == 0)
             break;
 
+        // VGA only: serial output can block under host stdio backpressure.
         putc(c);
-        if (c == '\n')
-            serial_write_char('\r');
-        serial_write_char(c);
         n++;
     }
 
@@ -72,10 +72,8 @@ void syscall_handle(int_frame_t* frame)
         case SYSCALL_PUTC:
         {
             char c = (char)(frame->ebx & 0xFFu);
+            // VGA only: serial output can block under host stdio backpressure.
             putc(c);
-            if (c == '\n')
-                serial_write_char('\r');
-            serial_write_char(c);
             frame->eax = 0;
             return;
         }
@@ -88,6 +86,45 @@ void syscall_handle(int_frame_t* frame)
             kfree((void*)frame->ebx);
             frame->eax = 0;
             return;
+
+        case SYSCALL_FS_OPEN:
+            frame->eax = (uint32_t)vfs_open((uint32_t)current, (const char*)frame->ebx, frame->ecx);
+            return;
+
+        case SYSCALL_FS_CLOSE:
+            frame->eax = (uint32_t)vfs_close((uint32_t)current, (int)frame->ebx);
+            return;
+
+        case SYSCALL_FS_READ:
+            frame->eax = (uint32_t)vfs_read((uint32_t)current,
+                                            (int)frame->ebx,
+                                            (void*)frame->ecx,
+                                            frame->edx);
+            return;
+
+        case SYSCALL_FS_WRITE:
+            frame->eax = (uint32_t)vfs_write((uint32_t)current,
+                                             (int)frame->ebx,
+                                             (const void*)frame->ecx,
+                                             frame->edx);
+            return;
+
+        case SYSCALL_FS_SEEK:
+            frame->eax = (uint32_t)vfs_seek((uint32_t)current,
+                                            (int)frame->ebx,
+                                            (int)frame->ecx,
+                                            frame->edx);
+            return;
+
+        case SYSCALL_GETC:
+        {
+            char c;
+            if (keyboard_poll_char(&c))
+                frame->eax = (uint32_t)(uint8_t)c;
+            else
+                frame->eax = 0xFFFFFFFFu;
+            return;
+        }
 
         default:
             frame->eax = 0xFFFFFFFFu;

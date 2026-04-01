@@ -16,10 +16,17 @@
 
 #define SHELL_LINE_MAX 128
 
+extern void user_notepad_entry(const char* path);
+
 static char g_Line[SHELL_LINE_MAX];
 static uint32_t g_LineLen = 0;
 static uint8_t g_TicksLive = 0;
 static uint32_t g_LastTicksDrawn = 0xFFFFFFFFu;
+
+// When a user task is running in the foreground, the shell stops consuming
+// keyboard input so the Ring3 program can read via syscalls.
+static uint32_t g_ForegroundTaskId = 0;
+static uint8_t g_SuppressPromptOnce = 0;
 
 // Write a string at fixed VGA coordinates.
 static void write_at(uint8_t row, uint8_t col, const char* s)
@@ -122,6 +129,21 @@ static void print_prompt(void)
     printf("Valive> ");
 }
 
+static int foreground_task_alive(void)
+{
+    if (g_ForegroundTaskId == 0)
+        return 0;
+
+    for (uint32_t i = 0; i < task_max_slots(); i++)
+    {
+        task_info_t info;
+        if (task_get_info(i, &info) && info.id == g_ForegroundTaskId)
+            return 1;
+    }
+
+    return 0;
+}
+
 // Execute one parsed command line.
 static void execute_command(const char* cmd)
 {
@@ -132,7 +154,46 @@ static void execute_command(const char* cmd)
 
     if (str_eq(cmd, "help"))
     {
-        printf("Commands: help clear ticks echo mem memtest tasks spawn kill tasktest\n");
+        printf("Commands: help clear ticks echo mem memtest tasks spawn kill tasktest unote\n");
+        return;
+    }
+
+    if (starts_with(cmd, "unote"))
+    {
+        const char* p = skip_spaces(cmd + 5);
+        if (*p == 0)
+        {
+            printf("usage: unote <file>\n");
+            return;
+        }
+
+        // Extract first token as filename (shell has no quoting support).
+        char file[64];
+        uint32_t n = 0;
+        while (p[n] && p[n] != ' ' && n + 1u < sizeof(file))
+        {
+            file[n] = p[n];
+            n++;
+        }
+        file[n] = 0;
+        if (n == 0)
+        {
+            printf("usage: unote <file>\n");
+            return;
+        }
+
+        int id = task_create_user_arg("unote", (uint32_t)user_notepad_entry, file);
+        if (id > 0)
+        {
+            // Silent on success: hand off keyboard input to userland editor.
+            g_ForegroundTaskId = (uint32_t)id;
+            g_SuppressPromptOnce = 1;
+        }
+        else
+        {
+            printf("unote failed\n");
+        }
+
         return;
     }
 
@@ -231,6 +292,11 @@ static void shell_on_char(char c)
         g_Line[g_LineLen] = 0;
         execute_command(g_Line);
         g_LineLen = 0;
+        if (g_SuppressPromptOnce)
+        {
+            g_SuppressPromptOnce = 0;
+            return;
+        }
         print_prompt();
         return;
     }
@@ -269,6 +335,18 @@ void shell_init(void)
 void shell_poll(void)
 {
     char c;
+
+    if (g_ForegroundTaskId)
+    {
+        if (!foreground_task_alive())
+        {
+            g_ForegroundTaskId = 0;
+            putc('\n');
+            print_prompt();
+        }
+
+        return;
+    }
 
     if (g_TicksLive)
     {

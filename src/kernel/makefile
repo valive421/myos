@@ -9,10 +9,10 @@ LDFLAGS?=-m elf_i386 -nostdlib -T linker.ld
 
 SOURCES_ASM=main.asm interrupts.asm task_switch.asm
 SOURCES_ASM+=user_mode.asm
-SOURCES_C=kernel.c io.c boot.c vga.c gdt.c idt.c pic.c interrupts.c timer.c keyboard.c shell.c serial.c stdio.c memory.c task.c syscall.c
+SOURCES_C=kernel.c io.c boot.c vga.c gdt.c idt.c pic.c interrupts.c timer.c keyboard.c shell.c serial.c stdio.c memory.c vfs.c task.c syscall.c ata.c fat12.c
 
 USER_DIR=../user
-USER_SOURCES_C=$(USER_DIR)/user_test.c
+USER_SOURCES_C=$(USER_DIR)/user_test.c $(USER_DIR)/notepad.c
 USER_OBJECTS_C=$(patsubst $(USER_DIR)/%.c,$(BUILD_DIR)/user/c/%.obj,$(USER_SOURCES_C))
 
 USER_CFLAGS?=-m32 -ffreestanding -fno-pic -fno-pie -fno-stack-protector -fno-builtin -O2 -Wall -Wextra

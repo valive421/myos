@@ -63,4 +63,5 @@ clean:
 	$(MAKE) -C $(SRC_DIR)/bootloader/stage1 BUILD_DIR=$(abspath $(BUILD_DIR)) clean
 	$(MAKE) -C $(SRC_DIR)/bootloader/stage2 BUILD_DIR=$(abspath $(BUILD_DIR)) clean
 	$(MAKE) -C $(SRC_DIR)/kernel BUILD_DIR=$(abspath $(BUILD_DIR)) clean
-	rm -rf $(BUILD_DIR)/*
+	# Keep the persistent disk image (user data) across rebuilds.
+	@test -d $(BUILD_DIR) && find $(BUILD_DIR) -mindepth 1 -maxdepth 1 ! -name 'persist.img' -exec rm -rf {} + || true

@@ -16,6 +16,8 @@
 #define TASK_STACK_SIZE 4096
 #define USER_STACK_SIZE 4096
 
+#define USER_ARG_MAX 128
+
 typedef struct
 {
     uint32_t esp;
@@ -121,6 +123,17 @@ static void task_prepare_initial_context(task_t* t)
     t->ctx.eip = (uint32_t)task_bootstrap;
 }
 
+static uint32_t str_len_max(const char* s, uint32_t max)
+{
+    if (!s)
+        return 0;
+
+    uint32_t n = 0;
+    while (n < max && s[n])
+        n++;
+    return n;
+}
+
 // Reset scheduler state and mark all task slots as dead.
 void tasking_init(void)
 {
@@ -213,6 +226,71 @@ int task_create_user(const char* name, uint32_t user_entry)
             uint32_t u_top = (uint32_t)(g_Tasks[i].user_stack + USER_STACK_SIZE);
             u_top &= ~0x0Fu;
             g_Tasks[i].user_stack_top = u_top;
+
+            g_Tasks[i].entry = task_user_entry;
+            str_copy16(g_Tasks[i].name, name ? name : "user");
+            task_prepare_initial_context(&g_Tasks[i]);
+            return (int)g_Tasks[i].id;
+        }
+    }
+
+    return -1;
+}
+
+// Create a Ring3 user task and pass one string argument (arg0).
+// The arg string is copied into the task's user stack.
+// The initial user ESP is prepared so the user entry can be declared as:
+//   void user_main(const char* arg0);
+int task_create_user_arg(const char* name, uint32_t user_entry, const char* arg0)
+{
+    if (user_entry == 0)
+        return -1;
+
+    for (uint32_t i = 0; i < TASK_MAX; i++)
+    {
+        if (g_Tasks[i].state == TASK_STATE_DEAD)
+        {
+            g_Tasks[i].id = g_NextId++;
+            if (g_NextId == 0)
+                g_NextId = 1;
+
+            g_Tasks[i].state = TASK_STATE_READY;
+            g_Tasks[i].runs = 0;
+            g_Tasks[i].wake_tick = 0;
+            g_Tasks[i].data0 = 0;
+
+            g_Tasks[i].is_user = 1;
+            g_Tasks[i].user_entry = user_entry;
+
+            uint32_t u_top = (uint32_t)(g_Tasks[i].user_stack + USER_STACK_SIZE);
+            u_top &= ~0x0Fu;
+
+            uint32_t sp = u_top;
+            uint32_t user_arg_ptr = 0;
+
+            if (arg0 && arg0[0])
+            {
+                uint32_t len = str_len_max(arg0, USER_ARG_MAX - 1u);
+
+                // Copy string at the very top of the user stack (above initial ESP).
+                sp -= (len + 1u);
+                char* dst = (char*)sp;
+                for (uint32_t j = 0; j < len; j++)
+                    dst[j] = arg0[j];
+                dst[len] = 0;
+                user_arg_ptr = sp;
+
+                // Align down for pushes.
+                sp &= ~0x03u;
+            }
+
+            // Fake return address + arg0 (cdecl). Function is expected not to return.
+            sp -= 4;
+            *(uint32_t*)sp = user_arg_ptr;
+            sp -= 4;
+            *(uint32_t*)sp = 0;
+
+            g_Tasks[i].user_stack_top = sp;
 
             g_Tasks[i].entry = task_user_entry;
             str_copy16(g_Tasks[i].name, name ? name : "user");
@@ -337,6 +415,17 @@ task_t* task_current(void)
 int task_current_is_user(void)
 {
     return (g_CurrentTask && g_CurrentTask->is_user) ? 1 : 0;
+}
+
+int task_any_user_alive(void)
+{
+    for (uint32_t i = 0; i < TASK_MAX; i++)
+    {
+        if (g_Tasks[i].state != TASK_STATE_DEAD && g_Tasks[i].is_user)
+            return 1;
+    }
+
+    return 0;
 }
 
 // Number of active (non-dead) tasks.

@@ -47,6 +47,7 @@ static char scancode_to_char(uint8_t sc)
 {
     switch (sc)
     {
+        case 0x01: return 27; // ESC
         case 0x02: return g_Shift ? '!' : '1';
         case 0x03: return g_Shift ? '@' : '2';
         case 0x04: return g_Shift ? '#' : '3';

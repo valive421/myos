@@ -19,6 +19,7 @@
 #include "task.h"
 #include "timer.h"
 #include "vga.h"
+#include "vfs.h"
 
 extern void user_test_entry(void);
 
@@ -71,6 +72,10 @@ void kmain(void)
 	printf("Heap self-test: %s\n", heap_ok ? "PASS" : "FAIL");
 	serial_write_str(heap_ok ? "[K] heap self-test PASS\n" : "[K] heap self-test FAIL\n");
 
+	// Minimal RAM VFS for userland file I/O.
+	vfs_init();
+	printf("VFS ready\n");
+
 	// Phase-2 tasking bring-up + validation.
 	tasking_init();
 	int task_ok = task_run_self_test();
@@ -85,6 +90,7 @@ void kmain(void)
 	int user_id = task_create_user("user", (uint32_t)user_test_entry);
 	if (user_id > 0)
 		printf("User task started id=%d\n", user_id);
+
 
 	// Timer/keyboard + interrupt controller setup.
 	timer_init(100);
@@ -148,7 +154,8 @@ void kmain(void)
 		}
 
 		task_schedule();
-		shell_poll();
+		if (!task_any_user_alive())
+			shell_poll();
 		__asm__ __volatile__("hlt");
 	}
 }
