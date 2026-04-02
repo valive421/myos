@@ -177,8 +177,9 @@ Primary responsibilities:
 - ATA PIO disk I/O (`ata.c`) + FAT12 persistence (`fat12.c`)
 - Minimal VFS (`vfs.c`) exposed to userland via syscalls
 
-### Interrupt vector layout (IDT) + PIC remap (
-![Uploading mermaid-diagram-2026-04-02-215528.png…]()
+### Interrupt vector layout (IDT) + PIC remap 
+<img width="2823" height="496" alt="mermaid-diagram-2026-04-02-215528" src="https://github.com/user-attachments/assets/02d1ac53-1d10-4d3d-9068-1ac7fd7dfb3f" />
+
 
 
 ### PIC (8259) remap + EOI behavior
@@ -243,8 +244,9 @@ Implemented in `src/kernel/task.c`:
   - create, run, sleep, kill, exit
 - Introspection APIs for shell/debug
 - Runtime task self-test
+<img width="1172" height="1676" alt="task" src="https://github.com/user-attachments/assets/0cfd98d0-3fe5-4430-9ee9-ebd1502b796b" />
 
-<img width="1172" height="1676" alt="task" src="https://github.com/user-attachments/assets/82c42087-c456-44ec-a7ca-43e5984c5894" />
+
 
 Scheduling model summary:
 - Cooperative switching (tasks must call `task_yield`, `task_sleep`, or `task_exit`)
