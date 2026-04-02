@@ -55,11 +55,10 @@ Kernel (real mode entry -> protected mode)
 
 ## Stage Breakdown and Subtasks
 
-## boot map
-
+boot map
+<img width="2978" height="2906" alt="bootMap" src="https://github.com/user-attachments/assets/7697e7ab-5bc0-4160-8549-128c491d3fd6" />
 
 ## Stage1 (Boot Sector)
-<img width="2978" height="2906" alt="bootMap" src="https://github.com/user-attachments/assets/7697e7ab-5bc0-4160-8549-128c491d3fd6" />
 
 Primary responsibilities:
 - Initialize minimal real-mode environment
