@@ -48,13 +48,18 @@ Kernel (real mode entry -> protected mode)
 	-> run shell + scheduler loop
 ```
 <img width="552" height="2236" alt="flow digram" src="https://github.com/user-attachments/assets/1e2db669-0915-4041-965c-56146e3c5769" />
+<img width="3619" height="904" alt="syscall + vfs path" src="https://github.com/user-attachments/assets/f1d71d94-85d5-423e-9e3a-16667665719f" />
 
 
 ---
 
 ## Stage Breakdown and Subtasks
 
+## boot map
+
+
 ## Stage1 (Boot Sector)
+<img width="2978" height="2906" alt="bootMap" src="https://github.com/user-attachments/assets/7697e7ab-5bc0-4160-8549-128c491d3fd6" />
 
 Primary responsibilities:
 - Initialize minimal real-mode environment
@@ -75,7 +80,6 @@ Primary responsibilities:
 - Initialize drive geometry
 - Parse FAT12 filesystem
 <img width="654" height="2764" alt="sg2 fat12" src="https://github.com/user-attachments/assets/09224300-3db6-4f29-a913-9aa7a3618c40" />
-
 - Locate/load `KERNEL  BIN`
 - Jump to kernel load address
 - <img width="1266" height="1068" alt="stage 2 relation" src="https://github.com/user-attachments/assets/0bcd24cc-09bf-4188-b698-aa804d811732" />
@@ -101,7 +105,8 @@ Key subtasks:
 - GDT/TSS (`gdt.c`)
 - IDT + ISR/IRQ stubs (`idt.c`, `interrupts.asm`, `interrupts.c`)
 - <img width="552" height="1276" alt="interupts flow" src="https://github.com/user-attachments/assets/e5429fa4-5726-4404-bdd2-0d2f803dc77d" />
-- PIC remap/EOI (`pic.c`)
+- PIC remap/EOI (`pic.c`)<img width="3942" height="1004" alt="idtPicLayout" src="https://github.com/user-attachments/assets/d8e12ca2-d386-4169-a16c-1e2ded92f052" />
+<img width="2078" height="1178" alt="picEoiRules" src="https://github.com/user-attachments/assets/7b038927-ee0c-4fb3-ba55-863fb75354c6" />
 - Timer and keyboard drivers (`timer.c`, `keyboard.c`)
 - <img width="1172" height="604" alt="timer keyboard hooks" src="https://github.com/user-attachments/assets/b4c1e56f-beb5-4c19-bdd6-361c1be8e9d7" />
 - Console + serial output (`vga.c`, `serial.c`, `stdio.c`)
