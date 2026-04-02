@@ -3,6 +3,12 @@
 Educational x86 OS project that boots from a FAT12 floppy image, loads a second-stage bootloader, enters a protected-mode kernel, and runs core subsystems (interrupts, shell, memory manager, cooperative tasking) plus Ring3 user tasks via an `int 0x80` syscall ABI and a minimal VFS persisted to a FAT12 data disk.
 
 ---
+## DEMO
+
+
+https://github.com/user-attachments/assets/d51c8113-1b2d-465b-af87-e882780a4fdc
+
+
 
 ## Highlights
 
@@ -41,6 +47,8 @@ Kernel (real mode entry -> protected mode)
 	-> start background + Ring3 user tasks
 	-> run shell + scheduler loop
 ```
+<img width="552" height="2236" alt="flow digram" src="https://github.com/user-attachments/assets/1e2db669-0915-4041-965c-56146e3c5769" />
+
 
 ---
 
@@ -59,14 +67,18 @@ Key subtasks:
 - FAT12 cluster traversal
 - Retry/reset handling for disk reads
 
+<img width="552" height="1628" alt="stage 1 flow" src="https://github.com/user-attachments/assets/26ec1d65-afa2-4b45-8b58-e673eb9da7fa" />
+
 ## Stage2 (Bootloader, 16-bit C/ASM)
 
 Primary responsibilities:
 - Initialize drive geometry
 - Parse FAT12 filesystem
+<img width="654" height="2764" alt="sg2 fat12" src="https://github.com/user-attachments/assets/09224300-3db6-4f29-a913-9aa7a3618c40" />
+
 - Locate/load `KERNEL  BIN`
 - Jump to kernel load address
-
+- <img width="1266" height="1068" alt="stage 2 relation" src="https://github.com/user-attachments/assets/0bcd24cc-09bf-4188-b698-aa804d811732" />
 Key subtasks:
 - Disk abstraction (`disk.c`)
 - FAT12 parser and file loader (`fat12.c`)
@@ -74,24 +86,31 @@ Key subtasks:
 - Console + formatted logging (`stdio.c`)
 - Serial mirror logging for debug visibility
 
+<img width="552" height="1724" alt="stage 2 flow" src="https://github.com/user-attachments/assets/537d6368-7ed4-4402-8fe4-fca6aa38f42b" />
+
 ## Kernel (Protected Mode)
 
 Primary responsibilities:
 - Enter protected mode and initialize architecture state
 - Bring up drivers and interrupt handling
 - Run shell and background tasks
+<img width="552" height="2396" alt="kerenl flow" src="https://github.com/user-attachments/assets/1c6b3331-3827-4f50-b41a-db507bcf0434" />
 
 Key subtasks:
 - Boot and address helpers (`boot.c`)
 - GDT/TSS (`gdt.c`)
 - IDT + ISR/IRQ stubs (`idt.c`, `interrupts.asm`, `interrupts.c`)
+- <img width="552" height="1276" alt="interupts flow" src="https://github.com/user-attachments/assets/e5429fa4-5726-4404-bdd2-0d2f803dc77d" />
 - PIC remap/EOI (`pic.c`)
 - Timer and keyboard drivers (`timer.c`, `keyboard.c`)
+- <img width="1172" height="604" alt="timer keyboard hooks" src="https://github.com/user-attachments/assets/b4c1e56f-beb5-4c19-bdd6-361c1be8e9d7" />
 - Console + serial output (`vga.c`, `serial.c`, `stdio.c`)
 - Shell (`shell.c`)
 - Syscall dispatcher (`syscall.c`) + Ring3 entry (`user_mode.asm`)
 - ATA PIO disk I/O (`ata.c`) + FAT12 persistence (`fat12.c`)
 - Minimal VFS (`vfs.c`) exposed to userland via syscalls
+
+
 
 ---
 
@@ -121,6 +140,8 @@ Implemented in `src/kernel/memory.c`:
 - Runtime test:
 	- `memory_run_self_test()`
 
+<img width="1138" height="604" alt="memory" src="https://github.com/user-attachments/assets/dc8a602a-f95b-4c48-b928-1b09813cf074" />
+
 ## Phase 2.2: Task Management (Implemented)
 
 Implemented in `src/kernel/task.c`:
@@ -133,6 +154,7 @@ Implemented in `src/kernel/task.c`:
 	- create, run, sleep, kill, exit
 - Introspection APIs for shell/debug
 - Runtime task self-test
+<img width="1172" height="1676" alt="task" src="https://github.com/user-attachments/assets/82c42087-c456-44ec-a7c8-32970b474b60" />
 
 Scheduling model summary:
 - Cooperative switching (tasks must call `task_yield`, `task_sleep`, or `task_exit`)
